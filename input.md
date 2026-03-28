@@ -6,23 +6,25 @@ The command center is located in a neutral region, which strictly prohibits host
 
 # USER STORIES:
 
-1) As a System Administrator, I want the broker to connect to sensor WebSockets, so that the platform can ingest real-time seismic data streams continuously
-2) As a System Administrator, I want the broker to broadcast the ingested data to the processing service replicas without altering or analyzing it, so that our operations strictly comply with the neutral region's regulations
-3) As a System Administrator, I want the processing service to maintain a sliding window of recent samples for each sensor, so that continuous data streams can be analyzed accurately over a specific timeframe
-4) As a System Administrator, I want the processing service to apply a Discrete Fourier Transform on the data windows, so that the dominant frequency components of ground vibrations can be extracted
-5) As a System Administrator, I want the processing service to classify events as "Earthquake" when the frequency is between 0.5 and 3.0 Hz, so that seismic activities are correctly identified
-6) As a System Administrator, I want the processing service to classify events as "Conventional explosion" when the frequency is between 3.0 and 8.0 Hz, so that military activities are correctly identified
-7) As a System Administrator, I want the processing service to classify events as "Nuclear-like event" when the frequency is 8.0 Hz or higher, so that nuclear-like activities are correctly identified
-8) As a System Administrator, I want replicas to shut down immediately upon receiving a "SHUTDOWN" command, so that we can validate the system's fault tolerance
-9) As a System Administrator, I want the processing service to be replicated, so that the system can be fault tolerant
-10) As a Database Administrator, I want the replicas to persist detected events, so that an history of events is stored for further analyses
-11) As a Database Administrator, I want the database to enforce a composite unique constraint (by sensor, event type, and time), so that the system actively prevents duplicate event records at the data level
-12) As a Network Administrator, I want a single entry point (API Gateway) for the entire system, so that frontend requests are routed securely to the available backend services
-13) As a Network Administrator, I want the API Gateway to perform continuous health checks on processing service replicas, so that failed or destroyed nodes are automatically excluded from the routing pool
-14) As a Command Center Operator, I want to view a monitoring dashboard, so that I can keep track of ongoing seismic threats globally from a single interface
-15) As a Command Center Operator, I want to receive live event updates on the dashboard without having to refresh the page, so that my situational awareness is never delayed
-16) As a Command Center Operator, I want to inspect historical seismic events in a tabular data grid, so that I can perform retrospective analysis on past incidents
-17) As a Command Center Operator, I want to filter historical events by event type, so that I can focus my analysis exclusively on specific classes of threats
-18) As a Command Center Operator, I want to filter historical events by sensor and sensor category, so that I can isolate military or seismic activities detected by a specific sensor or category of sensors
-19) As a Command Center Operator, I want to filter events based on the event time of occurence, so that I can focus my analysis exclusively on specific time frame
-20) As a Command Center Operator, I want to view the geographical coordinates of the sensors, so that I can visually map the origin of the alerts on my monitors
+# User Stories: Seismic Monitoring System
+
+1) As an Operator, I want to receive events classified as "Earthquake" when the frequency is between 0.5 and 3.0 Hz, so that seismic activities are correctly identified.
+2) As an Operator, I want to receive events classified as "Conventional Explosion" when the frequency is between 0.3 and 8.0 Hz, so that military activities are correctly identified.
+3) As an Operator, I want to receive events classified as "Nuclear-like event" when the frequency is 8.0 Hz or higher, so that nuclear-like activities are correctly identified.
+4) As an Operator, I want to view the most recent event occurred for each sensor, so that I'm always aware of the last threat identified for every sensor.
+5) As an Operator, I want the most recent event occurred at a sensor to be highlighted with a different colour, so that it is easier to have a clear global view of the various threats.
+6) As an Operator, I want last events occurred grouped by sensor category, so that it is easier to distinguish threats identified by different kind of sensors.
+7) As an Operator, I want to view general information about a specific sensor, so that I can understand the sensor context.
+8) As an Operator, I want to inspect historical events in a tabular data grid, so that I can perform retrospective analysis on past incidents.
+9) As an Operator, I want to filter historical events by event type, so that I can focus my analysis exclusively on specific classes of threats.
+10) As an Operator, I want to filter historical events by sensor category, so that I can isolate events detected by a specific category of sensors.
+11) As an Operator, I want to filter historical events by a specific sensor, so that I can isolate events detected by a specific sensor.
+12) As an Operator, I want to filter events based on the event time of occurrence, so that I can focus my analysis exclusively on specific time frame.
+13) As an Operator, I want to sort historical events by timestamp, so that I can see the chronological order of incidents.
+14) As an Operator, I want the dashboard to be updated live without a manual refresh, so that my situational awareness is never delayed.
+15) As an Operator, I want to receive a notification every time a new event occur, so that I do not miss any situational changes.
+16) As an Operator, I want to view the last 10 notification received, so that I do not miss any situational changes.
+17) As an Operator or Data Analyst, I want to download the history of events as an Excel file, so that I can export historical data for further analysis.
+18) As an Operator, I want to visualize the position of a specific sensor on a map, so that I can visually map the origin of the alerts on my monitors.
+19) As a Data Analyst, I want a graph that shows live frequency changes for each sensor, so that statistical analyses can be performed.
+20) As a Data Analyst, I want a graph that shows the number of events occurred for each sensor, so that statistical analyses can be performed.
