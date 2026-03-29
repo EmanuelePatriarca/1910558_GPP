@@ -1,0 +1,21 @@
+/* ── Panel animation ── */
+@keyframes animate-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.animate-in {
+  animation: animate-in 0.15s ease-out forwards;
+}
+
+/* ── Time spinner shared styles ──
+   Applied via @apply so Tailwind scans them in the template
+   through the class names 'spinner-btn' and 'spinner-input'.
+*/
+.spinner-btn {
+  @apply text-slate-500 hover:text-slate-200 transition-colors leading-none text-[10px];
+}
+
+.spinner-input {
+  @apply w-6 text-center bg-transparent text-xs font-mono text-slate-100 focus:outline-none;
+}

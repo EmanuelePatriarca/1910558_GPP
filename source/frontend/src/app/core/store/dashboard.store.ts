@@ -8,6 +8,11 @@ export interface DashboardFilters {
   eventType: string;
   category: string;
   timeRange: string;
+  sensorId: string;
+  /** ISO string, inclusive lower bound */
+  dateFrom: string | null;
+  /** ISO string, inclusive upper bound (end of day) */
+  dateTo:   string | null;
 }
 
 @Injectable({
@@ -24,7 +29,10 @@ export class DashboardStore implements OnDestroy {
   public filters = signal<DashboardFilters>({
     eventType: 'All',
     category: 'All',
-    timeRange: 'All'
+    timeRange: 'All',
+    sensorId: 'All',
+    dateFrom: null,
+    dateTo:   null,
   });
 
   public isLoading = signal<boolean>(true);
@@ -54,6 +62,9 @@ export class DashboardStore implements OnDestroy {
     const sensorMap = new Map<string, string>();
     this.sensorsBase().forEach(s => sensorMap.set(s.id, s.category));
 
+    const fromMs = currentFilters.dateFrom ? new Date(currentFilters.dateFrom).getTime() : null;
+    const toMs   = currentFilters.dateTo   ? new Date(currentFilters.dateTo).getTime()   : null;
+
     return allEvents.filter(ev => {
       let isMatch = true;
       if (currentFilters.eventType !== 'All' && ev.category_event !== currentFilters.eventType) {
@@ -63,6 +74,12 @@ export class DashboardStore implements OnDestroy {
       if (currentFilters.category !== 'All' && sCategory !== currentFilters.category) {
         isMatch = false;
       }
+      if (currentFilters.sensorId !== 'All' && ev.sensor_id !== currentFilters.sensorId) {
+        isMatch = false;
+      }
+      const evMs = ev.timestamp.getTime();
+      if (fromMs !== null && evMs < fromMs) { isMatch = false; }
+      if (toMs   !== null && evMs > toMs)   { isMatch = false; }
       return isMatch;
     }).sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
   });
@@ -77,7 +94,7 @@ export class DashboardStore implements OnDestroy {
   }
 
   clearFilters() {
-    this.filters.set({ eventType: 'All', category: 'All', timeRange: 'All' });
+    this.filters.set({ eventType: 'All', category: 'All', timeRange: 'All', sensorId: 'All', dateFrom: null, dateTo: null });
   }
 
   // -- DATA FETCHING & SYNC -- //
@@ -89,9 +106,16 @@ export class DashboardStore implements OnDestroy {
 
       const now = new Date();
       this.historicalEvents.set([
-        { id: 'e1', sensor_id: 'sensor-01', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.2, timestamp: new Date(now.getTime() - 1000 * 60 * 15) },
-        { id: 'e2', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.NUCLEAR_LIKE, dominant_frequency: 9.5, timestamp: new Date(now.getTime() - 1000 * 60 * 75) },
-        { id: 'e3', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, dominant_frequency: 4.5, timestamp: new Date(now.getTime() - 1000 * 60 * 120) }
+        { id: 'e1', sensor_id: 'sensor-01', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 2.1, timestamp: new Date(now.getTime() - 1000 * 60 * 15) },
+        
+        // 3 Eventi mockati per Helios Shelf (sensor-05) - Uno stack per Chart Testing
+        { id: 'e2', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.NUCLEAR_LIKE, dominant_frequency: 9.5, timestamp: new Date(now.getTime() - 1000 * 60 * 25) },
+        { id: 'e3', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, dominant_frequency: 5.1, timestamp: new Date(now.getTime() - 1000 * 60 * 140) },
+        { id: 'e4', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.1, timestamp: new Date(now.getTime() - 1000 * 60 * 300) },
+        
+        // 2 Eventi mockati per DC Core Slab (sensor-12)
+        { id: 'e5', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, dominant_frequency: 4.5, timestamp: new Date(now.getTime() - 1000 * 60 * 120) },
+        { id: 'e6', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.5, timestamp: new Date(now.getTime() - 1000 * 60 * 220) }
       ]);
       
       this.isLoading.set(false);
