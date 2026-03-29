@@ -82,4 +82,4 @@ def categorize_event(dominant_frequency):
     elif dominant_frequency < 5.0:
         return "conventional_explosion"
     else:
-        return "nuclear_like_event"
+        return "nuclear_like"
