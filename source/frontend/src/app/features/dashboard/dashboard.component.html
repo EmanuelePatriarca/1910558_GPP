@@ -90,9 +90,9 @@
         <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Events History 
             <span class="text-xs font-normal text-slate-400 ml-3 py-1 px-2 bg-slate-800 rounded-full">{{ store.filteredHistory().length }} events</span>
         </h2>
-        <button class="flex items-center gap-2 text-xs lg:text-sm text-slate-400 hover:text-white transition-colors">
-          <svg class="w-4 h-4" ml-1 fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Download CSV
+        <button (click)="exportToExcel()" class="flex items-center gap-2 text-xs lg:text-sm text-slate-400 hover:text-white transition-colors">
+          <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Download XLSX
         </button>
       </div>
       
