@@ -1,8 +1,9 @@
 import sys
-import json
 import numpy as np
 import logging
-from app.services.connection_manager import manager
+from datetime import datetime, timezone
+from app.services.events_websocket import manager
+from app.schemas.event_data import EventDataResponse
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,20 @@ class VibrationAnalyzer:
 
             logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
             
-            # Broadcast the results to all connected clients
-            payload = {
-                "dominant_frequency": float(dominant_freq),
-                "peak_magnitude": float(magnitudes[dominant_idx])
-            }
-            await manager.broadcast(json.dumps(payload))
+            # Send the results obtained via WebSocket to API Gateway
+
+            event_time = datetime.fromtimestamp(self.timestamps[-1], tz=timezone.utc).isoformat()
+            
+            response = EventDataResponse(
+                sensor_id=self.sensor_id,
+                timestamp=event_time,
+                category_event="", # TODO: Update this based on your own condition/logic
+                dominant_frequency=float(dominant_freq)
+            )
+
+            print(response.model_dump_json())
+
+            await manager.broadcast(response.model_dump_json())
             
         except Exception as e:
             logger.error(f"Error computing FFT: {e}")

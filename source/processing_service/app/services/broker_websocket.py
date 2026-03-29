@@ -1,10 +1,10 @@
 import asyncio
 import logging
 import websockets
-import json
-from datetime import datetime
 from app.core.config import settings
-from app.services.process_data import VibrationAnalyzer
+from app.services.vibration_analyzer import VibrationAnalyzer
+from pydantic import ValidationError
+from app.schemas.sensor_data import SensorDataInput
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +19,13 @@ async def broker_websocket_task(uri: str):
                 while True:
                     message = await websocket.recv()
                     try:
-                        data = json.loads(message)
 
-                        # Parse the ISO 8601 timestamp string into a Unix epoch float
-                        timestamp_str = data.get("timestamp")
-                        timestamp = datetime.fromisoformat(timestamp_str).timestamp() if timestamp_str else 0.0
+                        data = SensorDataInput.model_validate_json(message)
                         
-                        value = float(data.get("value", 0.0))
+                        await analyzer.add_data(data.sensor_id, data.timestamp, data.value)
 
-                        await analyzer.add_data(timestamp, value)
-
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON: {message}")
+                    except ValidationError as e:
+                        logger.error(f"Failed to validate incoming data: {e} - Message: {message}")
                     except Exception as e:
                         logger.error(f"Error processing websocket message: {e}")
                     
