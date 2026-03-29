@@ -63,7 +63,7 @@ class VibrationAnalyzer:
             response = EventDataResponse(
                 sensor_id=self.sensor_id,
                 timestamp=event_time,
-                category_event="", # TODO: Update this based on your own condition/logic
+                category_event=categorize_event(dominant_freq),
                 dominant_frequency=float(dominant_freq)
             )
 
@@ -73,3 +73,13 @@ class VibrationAnalyzer:
             
         except Exception as e:
             logger.error(f"Error computing FFT: {e}")
+
+def categorize_event(dominant_frequency):
+    if dominant_frequency < 0.5:
+        return ""
+    elif dominant_frequency < 3.0:
+        return "earthquake"
+    elif dominant_frequency < 5.0:
+        return "conventional_explosion"
+    else:
+        return "nuclear_like"

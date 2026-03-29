@@ -1,15 +1,16 @@
 services:
-  processing_service_replica_1:
+  processing_service:
     build:
-      context: /processing_service
+      context: ./processing_service
       dockerfile: Dockerfile
-    container_name: processing_service
+    deploy:
+      replicas: 5
     ports:
-      - "8086:8000"
+      - "8086-8090:8000"
     depends_on:
       - broker
     env_file:
-      - /processing_service/.env
+      - ./processing_service/.env
     environment:
       - BROKER_WEBSOCKET_URI=ws://broker:8000/ws/stream
       - SHUTDOWN_SSE_URI=http://simulator:8080/api/control
@@ -43,7 +44,7 @@ services:
       - backend_network
     depends_on:
       - broker
-      - processing_service_replica_1
+      - processing_service
 
 networks:
   backend_network:
