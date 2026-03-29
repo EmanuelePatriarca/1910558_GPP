@@ -53,10 +53,20 @@ export class SensorInfoPanelComponent {
 
     const xData  = evs.map(e => {
       const d = e.timestamp;
-      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     });
     const yData  = evs.map(e => e.dominant_frequency);
-    const colors = evs.map(e => this.eventColor(e.category_event));
+    
+    // Internal frequency-based classification for the chart only
+    const getChartIndicator = (f: number) => {
+      if (f >= 8)   return { color: '#ef4444', label: 'Nuclear-like Event' };
+      if (f >= 3)   return { color: '#f97316', label: 'Conventional Explosion' };
+      if (f >= 0.5) return { color: '#eab308', label: 'Earthquake' };
+      return { color: '#6366f1', label: 'Background Noise' };
+    };
+
+    const indicators = evs.map(e => getChartIndicator(e.dominant_frequency));
 
     return {
       backgroundColor: 'transparent',
@@ -67,12 +77,12 @@ export class SensorInfoPanelComponent {
         textStyle: { color: '#f8fafc', fontSize: 11 },
         formatter: (params: any) => {
           const p   = params[0];
-          const ev  = evs[p.dataIndex];
+          const indicator = indicators[p.dataIndex];
           return `
             <div style="font-size:10px;line-height:1.6">
               <div style="font-weight:700;margin-bottom:2px">${p.axisValue}</div>
-              <div>Frequency: <b>${ev.dominant_frequency.toFixed(2)} Hz</b></div>
-              <div style="opacity:.7">${this.eventLabel(ev.category_event)}</div>
+              <div>Frequency: <b>${p.data.toFixed(2)} Hz</b></div>
+              <div style="color:${indicator.color}; font-weight:bold">${indicator.label}</div>
             </div>
           `;
         }
@@ -98,7 +108,7 @@ export class SensorInfoPanelComponent {
         symbol: 'circle',
         symbolSize: 7,
         lineStyle: { color: '#6366f1', width: 2 },
-        itemStyle: { color: (params: any) => colors[params.dataIndex] },
+        itemStyle: { color: (params: any) => indicators[params.dataIndex].color },
         areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.3)' }, { offset: 1, color: 'transparent' }]
         }},
