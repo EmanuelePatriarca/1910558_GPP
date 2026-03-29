@@ -14,4 +14,26 @@ services:
 
 networks:
   backend_network:
+
+  broker:
+    build: ./custom_broker       # La cartella dove hai il Dockerfile e i file .py
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "9000:8000"     # Espone FastAPI sulla porta 9000 del tuo PC, uvicorn usa la 8000
+    depends_on:
+      - simulator
+    networks:
+      - seismic-net
+
+  simulator:
+    image: seismic-signal-simulator:multiarch_v1 # Sostituisci con l'immagine reale
+    ports:
+      - "8080:8080"
+    networks:
+      - seismic-net
+
+
+networks:
+  seismic-net:
     driver: bridge
