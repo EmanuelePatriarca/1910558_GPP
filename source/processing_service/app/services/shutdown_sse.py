@@ -21,7 +21,8 @@ async def shutdown_sse_task(uri: str):
                     async for sse in event_source.aiter_sse():
                         try:
                             data = json.loads(sse.data)
-                            content = data.get("content")
+                            print(data)
+                            content = data.get("command")
 
                             if content == "SHUTDOWN":
                                 logger.warning("SHUTDOWN command received!")
