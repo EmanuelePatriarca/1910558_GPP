@@ -5,22 +5,10 @@ import websockets
 from contextlib import asynccontextmanager
 import itertools
 
-REPLICAS = [
-    "http://processing_service_replica_1:8081",
-    "http://processing_service_replica_2:8082",
-    "http://processing_service_replica_3:8083",
-    "http://processing_service_replica_4:8084",
-    "http://processing_service_replica_5:8085",
-]
-replica_cycle = itertools.cycle(REPLICAS)
-
-http_client = httpx.AsyncClient()
+from src.connection_manager import manager
 
 async def connect_to_sensor(sensor_id: str):
     uri = f"ws://simulator:8080/api/device/{sensor_id}/ws"
-
-    base_url = next(replica_cycle)
-    replica_url = f"{base_url}/api/process_data/ws"
 
     while True: 
             try:
@@ -32,13 +20,10 @@ async def connect_to_sensor(sensor_id: str):
                         message = await websocket.recv()
                         
                         try:
-                            await http_client.post(
-                                replica_url, 
-                                content=message,
-                                headers={"Content-Type": "application/json", "Sensor-ID": f"{sensor_id}"}
-                                )
-                        except httpx.ConnectError:
-                            pass
+                            # Inoltra il messaggio a tutte le repliche connesse
+                            await manager.broadcast(message, sensor_id)
+                        except Exception as e:
+                            print(f"Errore broadcast per {sensor_id}: {e}")
                 
             except Exception as e:
                 print(f"[-] Errore con {sensor_id}: {e}. Riprovo tra 5 secondi...")

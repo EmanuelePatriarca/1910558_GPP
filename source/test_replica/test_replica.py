@@ -1,18 +1,41 @@
-from fastapi import FastAPI, Request, Header
+import asyncio
+import websockets
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+import json
 
-app = FastAPI(title="Finta Replica di Test")
+async def connect_to_broker():
+    uri = "ws://broker:8000/ws/stream"
+    
+    while True:
+        try:
+            print(f"[*] Tentativo di connessione al broker: {uri}")
+            async with websockets.connect(uri) as websocket:
+                print("[+] Connesso al broker! In ascolto di messaggi dal simulatore...")
+                while True:
+                    messaggio_dal_broker = await websocket.recv()
+                    
+                    try:
+                        dati = json.loads(messaggio_dal_broker)
+                        # Recupera il sensor_id iniettato dal Broker
+                        sensor_id = dati.get("sensor_id", "Sconosciuto")
+                        print(f" BERSAGLIO COLPITO! | Dati: {dati}")
+                    except json.JSONDecodeError:
+                        print(f" [REPLICA MSG CATTURATO Raw] {messaggio_dal_broker}")
+                    
+        except Exception as e:
+            print(f"[-] Errore connessione al broker: {e}. Riprovo tra 5 secondi...")
+            await asyncio.sleep(5)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Avvia la connessione persistente al broker in background
+    task = asyncio.create_task(connect_to_broker())
+    yield
+    task.cancel()
+
+app = FastAPI(title="Finta Replica di Test (Subscriber)", lifespan=lifespan)
 
 @app.get("/")
 def read_root():
-    return {"status": "Replica is running", "message": "Finta Replica in ascolto!"}
-
-# Questo è l'endpoint esatto che il tuo Broker sta cercando di chiamare!
-@app.post("/api/process_data/ws")
-async def ricevi_dati(request: Request, sensor_id: str | None = Header(default=None)):
-    # Leggiamo il "corpo" della richiesta (il JSON del professore)
-    body = await request.body()
-    
-    # Stampiamo a schermo cosa è arrivato e da chi
-    print(f" BERSAGLIO COLPITO! Sensore: {sensor_id} | Dati: {body.decode()}")
-    
-    return {"status": "ricevuto"}
+    return {"status": "Replica Subscriber is running", "message": "Finta Replica Sub in funzione!"}
