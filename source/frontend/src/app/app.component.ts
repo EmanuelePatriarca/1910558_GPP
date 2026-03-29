@@ -57,7 +57,7 @@ export class AppComponent {
     this.activeToasts.update(t => t.filter(x => x.id !== id));
   }
 
-  getAlertColorClass(category: string): string {
+  getAlertColorClass(category: string | undefined): string {
     switch (category) {
       case 'earthquake': return 'bg-yellow-500 border-yellow-400 text-yellow-950 shadow-yellow-900/20';
       case 'conventional_explosion': return 'bg-orange-500 border-orange-400 text-orange-950 shadow-orange-900/20';
@@ -66,7 +66,7 @@ export class AppComponent {
     }
   }
 
-  getAlertDotColor(category: string): string {
+  getAlertDotColor(category: string | undefined): string {
     switch (category) {
       case 'earthquake': return 'bg-yellow-500';
       case 'conventional_explosion': return 'bg-orange-500';
@@ -75,7 +75,7 @@ export class AppComponent {
     }
   }
 
-  getAlertTitle(category: string): string {
+  getAlertTitle(category: string | undefined): string {
     switch (category) {
       case 'earthquake': return 'EARTHQUAKE DETECTED';
       case 'conventional_explosion': return 'EXPLOSION DETECTED';

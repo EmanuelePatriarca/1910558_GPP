@@ -12,7 +12,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-01/ws"
   },
   {
     id: "sensor-02",
@@ -25,7 +24,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-02/ws"
   },
   {
     id: "sensor-03",
@@ -38,7 +36,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-03/ws"
   },
   {
     id: "sensor-04",
@@ -51,7 +48,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-04/ws"
   },
   {
     id: "sensor-05",
@@ -64,7 +60,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-05/ws"
   },
   {
     id: "sensor-06",
@@ -77,7 +72,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-06/ws"
   },
   {
     id: "sensor-07",
@@ -90,7 +84,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-07/ws"
   },
   {
     id: "sensor-08",
@@ -103,7 +96,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-08/ws"
   },
   {
     id: "sensor-09",
@@ -116,7 +108,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-09/ws"
   },
   {
     id: "sensor-10",
@@ -129,7 +120,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-10/ws"
   },
   {
     id: "sensor-11",
@@ -142,7 +132,6 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-11/ws"
   },
   {
     id: "sensor-12",
@@ -155,6 +144,5 @@ export const STATIC_SENSORS: Sensor[] = [
     },
     measurement_unit: "mm/s",
     sampling_rate_hz: 20,
-    websocket_url: "/api/device/sensor-12/ws"
   }
 ];

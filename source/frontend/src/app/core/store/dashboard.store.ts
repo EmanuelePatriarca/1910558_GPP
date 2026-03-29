@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { SeismicEventService } from '../services/seismic-event.service';
-import { SensorDashboardState, Event, Sensor, SensorEventRequestEnum, SensorCategoryEnum } from '../models/sensor.model';
+import { SensorDashboardState, Event, Sensor, SensorCategoryEnum } from '../models/sensor.model';
 import { Subscription } from 'rxjs';
 import { STATIC_SENSORS } from '../constants/sensors.data';
 
@@ -19,7 +19,7 @@ export interface DashboardFilters {
   sensorId: string;
   /** ISO string, inclusive lower bound */
   dateFrom: string | null;
-  /** ISO string, inclusive upper bound (end of day) */
+  /** ISO string, inclusive upper bound */
   dateTo:   string | null;
 }
 
@@ -35,7 +35,9 @@ export class DashboardStore implements OnDestroy {
   public historicalEvents = signal<Event[]>([]);
   public alertsHistory = signal<AppAlert[]>([]);
   public historySortOrder = signal<'desc' | 'asc'>('desc');
-  
+  /** All raw WS events (including uncategorized) — used by the live frequency chart */
+  public liveFrequencyEvents = signal<Event[]>([]);
+
   public filters = signal<DashboardFilters>({
     eventType: 'All',
     category: 'All',
@@ -47,6 +49,7 @@ export class DashboardStore implements OnDestroy {
 
   public isLoading = signal<boolean>(true);
   public isLive = signal<boolean>(false);
+  public loadError = signal<string | null>(null);
 
   // -- COMPUTED SIGNALS -- //
   public unreadAlertsCount = computed(() => this.alertsHistory().filter(a => !a.isRead).length);
@@ -56,7 +59,6 @@ export class DashboardStore implements OnDestroy {
     return this.sensorsBase().map(sensor => {
       const sensorEvents = events.filter(e => e.sensor_id === sensor.id)
         .sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
-      
       return {
         ...sensor,
         lastEvent: sensorEvents.length > 0 ? sensorEvents[0] : undefined
@@ -70,7 +72,7 @@ export class DashboardStore implements OnDestroy {
   public filteredHistory = computed(() => {
     const allEvents = this.historicalEvents();
     const currentFilters = this.filters();
-    
+
     const sensorMap = new Map<string, string>();
     this.sensorsBase().forEach(s => sensorMap.set(s.id, s.category));
 
@@ -112,12 +114,9 @@ export class DashboardStore implements OnDestroy {
       isRead: false,
       receivedAt: new Date()
     };
-    
     this.alertsHistory.update(alerts => {
       const newArray = [alert, ...alerts];
-      if (newArray.length > 10) {
-        newArray.length = 10;
-      }
+      if (newArray.length > 10) { newArray.length = 10; }
       return newArray;
     });
   }
@@ -149,49 +148,52 @@ export class DashboardStore implements OnDestroy {
   // -- DATA FETCHING & SYNC -- //
   loadInitialData() {
     this.isLoading.set(true);
+    this.loadError.set(null);
 
-    setTimeout(() => {
-      this.sensorsBase.set(STATIC_SENSORS);
+    // 1. Load static sensor registry
+    this.sensorsBase.set(STATIC_SENSORS);
 
-      const now = new Date();
-      this.historicalEvents.set([
-        { id: 'e1', sensor_id: 'sensor-01', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 2.1, timestamp: new Date(now.getTime() - 1000 * 60 * 15) },
-        
-        // 3 Eventi mockati per Helios Shelf (sensor-05) - Uno stack per Chart Testing
-        { id: 'e2', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.NUCLEAR_LIKE, dominant_frequency: 9.5, timestamp: new Date(now.getTime() - 1000 * 60 * 25) },
-        { id: 'e3', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, dominant_frequency: 5.1, timestamp: new Date(now.getTime() - 1000 * 60 * 140) },
-        { id: 'e4', sensor_id: 'sensor-05', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.1, timestamp: new Date(now.getTime() - 1000 * 60 * 300) },
-        
-        // 2 Eventi mockati per DC Core Slab (sensor-12)
-        { id: 'e5', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, dominant_frequency: 4.5, timestamp: new Date(now.getTime() - 1000 * 60 * 120) },
-        { id: 'e6', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.5, timestamp: new Date(now.getTime() - 1000 * 60 * 220) }
-      ]);
-      
-      this.isLive.set(true);
-      this.isLoading.set(false);
+    // 2. Fetch historical event data from backend
+    this.seismicService.getHistoricalEvents().subscribe({
+      next: (events) => {
+        const parsed = events.map(e => ({ ...e, timestamp: new Date(e.timestamp) }));
+        this.historicalEvents.set(parsed);
+        this.isLoading.set(false);
 
-      // MOCK REAL-TIME ALERTS (US 15 & 16 TEST)
-      setInterval(() => {
-        if (!this.isLive()) return;
-        const randomSensor = STATIC_SENSORS[Math.floor(Math.random() * STATIC_SENSORS.length)];
-        const mockCategories = [SensorEventRequestEnum.EARTHQUAKE, SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, SensorEventRequestEnum.NUCLEAR_LIKE];
-        const randomCategory = mockCategories[Math.floor(Math.random() * mockCategories.length)];
-        const newEvent: Event = {
-          id: `evt-live-${Date.now()}`,
-          sensor_id: randomSensor.id,
-          category_event: randomCategory,
-          dominant_frequency: Math.random() * 10,
-          timestamp: new Date()
-        };
-        this.historicalEvents.update(evs => [newEvent, ...evs]);
-        this.pushAlert(newEvent, randomSensor.name);
-      }, 8000);
-    }, 500);
+        // 3. Subscribe to live event stream (SSE)
+        this.connectLiveStream();
+      },
+      error: (err) => {
+        console.error('Failed to load historical events:', err);
+        this.loadError.set('Could not load event history from server.');
+        this.isLoading.set(false);
+      }
+    });
   }
 
   private connectLiveStream() {
-    this.isLive.set(true);
-    // TODO: implement websocket array connections or single SSE
+    this.liveSub?.unsubscribe();
+    this.liveSub = this.seismicService.connectWebSocket().subscribe({
+      next: (event: Event) => {
+        const parsed = { ...event, timestamp: new Date(event.timestamp) };
+
+        // Always push to liveFrequencyEvents (for the chart — no category required)
+        this.liveFrequencyEvents.update(evs => [parsed, ...evs].slice(0, 200));
+
+        // Only categorized events update history & trigger alerts
+        if (parsed.category_event) {
+          this.historicalEvents.update(evs => [parsed, ...evs]);
+          const sensorName = this.getSensorRef(event.sensor_id)?.name ?? event.sensor_id;
+          this.pushAlert(parsed, sensorName);
+        }
+
+        this.isLive.set(true);
+      },
+      error: (err: unknown) => {
+        console.warn('WebSocket disconnected:', err);
+        this.isLive.set(false);
+      }
+    });
   }
 
   ngOnDestroy() {

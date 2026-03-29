@@ -14,20 +14,25 @@ import { SensorDashboardState, SensorEventRequestEnum, Event } from '../../../..
 })
 export class SensorInfoPanelComponent {
 
-  sensor  = input.required<SensorDashboardState>();
-  events  = input.required<Event[]>();
-  close   = output<void>();
+  sensor      = input.required<SensorDashboardState>();
+  events      = input.required<Event[]>();       // historical events (REST)
+  liveEvents  = input.required<Event[]>();       // all raw WS events
+  close       = output<void>();
 
   private sanitizer = inject(DomSanitizer);
 
   // ── Derived ──────────────────────────────────────────────────────────────
 
-  /** Events for this sensor only, oldest first (for the chart x-axis) */
-  sensorEvents = computed(() =>
-    this.events()
-      .filter(e => e.sensor_id === this.sensor().id)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-  );
+  /** Merge historical + live events for this sensor, oldest first */
+  sensorEvents = computed(() => {
+    const id = this.sensor().id;
+    const historical = this.events().filter(e => e.sensor_id === id);
+    const live = this.liveEvents().filter(e => e.sensor_id === id);
+    // Deduplicate by id if present, live events take precedence
+    const liveIds = new Set(live.map(e => e.id).filter(Boolean));
+    const merged = [...live, ...historical.filter(e => !e.id || !liveIds.has(e.id))];
+    return merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  });
 
   mapSrc = computed<SafeResourceUrl>(() => {
     const { latitude: lat, longitude: lon } = this.sensor().coordinates;
@@ -98,7 +103,7 @@ export class SensorInfoPanelComponent {
   });
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  private eventColor(cat: SensorEventRequestEnum): string {
+  private eventColor(cat: SensorEventRequestEnum | undefined): string {
     switch (cat) {
       case SensorEventRequestEnum.EARTHQUAKE:            return '#eab308';
       case SensorEventRequestEnum.CONVENTIONAL_EXPLOSION: return '#f97316';
@@ -107,21 +112,21 @@ export class SensorInfoPanelComponent {
     }
   }
 
-  eventLabel(cat: SensorEventRequestEnum): string {
+  eventLabel(cat: SensorEventRequestEnum | undefined): string {
     switch (cat) {
       case SensorEventRequestEnum.EARTHQUAKE:            return 'Earthquake';
       case SensorEventRequestEnum.CONVENTIONAL_EXPLOSION: return 'Conventional Explosion';
       case SensorEventRequestEnum.NUCLEAR_LIKE:          return 'Nuclear-like Event';
-      default: return 'OK';
+      default: return '—';
     }
   }
 
-  eventColorClass(cat: SensorEventRequestEnum): string {
+  eventColorClass(cat: SensorEventRequestEnum | undefined): string {
     switch (cat) {
       case SensorEventRequestEnum.EARTHQUAKE:            return 'text-yellow-400';
       case SensorEventRequestEnum.CONVENTIONAL_EXPLOSION: return 'text-orange-400';
       case SensorEventRequestEnum.NUCLEAR_LIKE:          return 'text-red-400 font-bold';
-      default: return 'text-emerald-400';
+      default: return 'text-slate-400';
     }
   }
 }

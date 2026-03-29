@@ -71,6 +71,7 @@
         <app-sensor-info-panel
           [sensor]="selectedInfoSensor"
           [events]="store.historicalEvents()"
+          [liveEvents]="store.liveFrequencyEvents()"
           (close)="closeInfoPanel()"
         />
       }
