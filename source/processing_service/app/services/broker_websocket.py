@@ -8,7 +8,7 @@ from app.services.process_data import VibrationAnalyzer
 
 logger = logging.getLogger(__name__)
 
-analyzer = VibrationAnalyzer(window_size=512, step_size=128)
+analyzer = VibrationAnalyzer("sensor-01", window_size=512, step_size=128)
 
 async def broker_websocket_task(uri: str):
     while True:
@@ -20,14 +20,15 @@ async def broker_websocket_task(uri: str):
                     message = await websocket.recv()
                     try:
                         data = json.loads(message)
-                        
+
                         # Parse the ISO 8601 timestamp string into a Unix epoch float
                         timestamp_str = data.get("timestamp")
                         timestamp = datetime.fromisoformat(timestamp_str).timestamp() if timestamp_str else 0.0
                         
                         value = float(data.get("value", 0.0))
-                        
-                        analyzer.add_data(timestamp, value)
+
+                        await analyzer.add_data(timestamp, value)
+
                     except json.JSONDecodeError:
                         logger.error(f"Failed to parse JSON: {message}")
                     except Exception as e:

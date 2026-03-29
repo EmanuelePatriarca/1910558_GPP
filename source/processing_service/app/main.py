@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.api import api_router
 from app.services import broker_websocket
-from app.services.shutdown_websocket import shutdown_sse
+from app.services.shutdown_sse import shutdown_sse
 from contextlib import asynccontextmanager
 
 def get_application() -> FastAPI:
