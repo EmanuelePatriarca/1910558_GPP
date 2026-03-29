@@ -34,6 +34,17 @@ services:
     networks:
       - backend_network
 
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    networks:
+      - backend_network
+    depends_on:
+      - broker
+      - processing_service_replica_1
+
 networks:
   backend_network:
     driver: bridge
