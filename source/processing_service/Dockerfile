@@ -36,7 +36,7 @@ RUN chown -R nonrootuser:nonrootuser /processing_service/app
 USER nonrootuser
 
 # Update PATH to include the local bin where packages were installed
-ENV PATH=/home/nonrootuser/.local/bin:$PATHclea
+ENV PATH=/home/nonrootuser/.local/bin:$PATH
 
 # Expose the port FastAPI will run on
 EXPOSE 8000

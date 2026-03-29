@@ -1,39 +1,40 @@
 services:
-  processing_service:
+  processing_service_replica_1:
     build:
       context: /processing_service
       dockerfile: Dockerfile
     container_name: processing_service
     ports:
       - "8086:8000"
-      - "8081:8081"
+    depends_on:
+      - broker
     env_file:
       - /processing_service/.env
+    environment:
+      - BROKER_WEBSOCKET_URI=ws://localhost:8081/api/process_data/ws
+      - SHUTDOWN_SSE_URI=http://simulator:8080/api/control
     networks:
       - backend_network
 
-networks:
-  backend_network:
-
   broker:
-    build: ./custom_broker       # La cartella dove hai il Dockerfile e i file .py
+    build: ./custom_broker
     environment:
       - PYTHONUNBUFFERED=1
     ports:
-      - "9000:8000"     # Espone FastAPI sulla porta 9000 del tuo PC, uvicorn usa la 8000
+      - "9000:8000"
     depends_on:
       - simulator
     networks:
-      - seismic-net
+      - backend_network
 
   simulator:
-    image: seismic-signal-simulator:multiarch_v1 # Sostituisci con l'immagine reale
+    image: seismic-signal-simulator:multiarch_v1
     ports:
       - "8080:8080"
     networks:
-      - seismic-net
+      - backend_network
 
 
 networks:
-  seismic-net:
+  backend_network:
     driver: bridge

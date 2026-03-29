@@ -28,7 +28,7 @@ async def shutdown_sse_task(uri: str):
                                 os.kill(os.getpid(), signal.SIGTERM)
 
                         except json.JSONDecodeError:
-                            logger.error(f"Failed to parse JSON: {data}")
+                            logger.error(f"Failed to parse JSON: {sse.data}")
                         except Exception as e:
                             logger.error(f"Error processing SSE message: {e}")
 
