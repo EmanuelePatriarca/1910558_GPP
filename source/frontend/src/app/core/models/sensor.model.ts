@@ -22,10 +22,12 @@ export interface Sensor {
   coordinates: Coordinates;
   measurement_unit: string;
   sampling_rate_hz: number;
+  websocket_url: string;
 }
 
 export interface Event {
-  id: string;
+  id?: string; // Opzionale lato FE, assente dall'API
+  sensor_id: string; // Aggiunto per relazionare evento a sensore
   category_event: SensorEventRequestEnum;
   dominant_frequency: number;
   timestamp: Date; // Added per UI needs (history table)

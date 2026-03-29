@@ -1,4 +1,12 @@
-<div class="flex-1 min-h-0 w-full grid grid-cols-1 xl:grid-cols-[4.5fr_5.5fr] gap-6 xl:gap-8">
+<div class="flex-1 min-h-0 w-full grid grid-cols-1 xl:grid-cols-[4.5fr_5.5fr] gap-6 xl:gap-8 relative">
+
+  <!-- Loading Overlay temporaneo -->
+  @if (store.isLoading()) {
+    <div class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-xl">
+       <div class="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+       <span class="mt-4 text-sm tracking-widest text-slate-400 font-mono uppercase animate-pulse">Establishing Secure Uplink</span>
+    </div>
+  }
 
   <!-- Left Column: Sensors -->
   <section class="flex flex-col gap-4 h-full pr-2 pb-2">
@@ -8,7 +16,7 @@
     <div class="flex-1 min-h-0 flex flex-col">
       <h3 class="text-xs lg:text-sm uppercase text-slate-400 font-semibold mb-2 tracking-widest shrink-0">Field Sensors</h3>
       <div class="flex-1 min-h-0 grid grid-cols-3 gap-2 xl:gap-3 auto-rows-fr">
-        @for (sensor of fieldSensors(); track sensor.id) {
+        @for (sensor of store.fieldSensors(); track sensor.id) {
           <div class="relative rounded border-2 p-1 lg:p-2 xl:p-3 flex flex-col justify-center items-center text-center shadow-lg transition-all min-h-0"
                [ngClass]="getSensorColorTheme(sensor.lastEvent?.category_event)">
                
@@ -28,7 +36,7 @@
     <div class="flex-1 min-h-0 flex flex-col mt-2">
       <h3 class="text-xs lg:text-sm uppercase text-slate-400 font-semibold mb-2 tracking-widest shrink-0">Datacenter Sensors</h3>
       <div class="flex-1 min-h-0 grid grid-cols-3 gap-2 xl:gap-3 auto-rows-fr">
-        @for (sensor of datacenterSensors(); track sensor.id) {
+        @for (sensor of store.datacenterSensors(); track sensor.id) {
           <div class="relative rounded border-2 p-1 lg:p-2 xl:p-3 flex flex-col justify-center items-center text-center shadow-lg transition-all min-h-0"
                [ngClass]="getSensorColorTheme(sensor.lastEvent?.category_event)">
                
@@ -50,36 +58,59 @@
     <!-- History Grid Partial -->
     <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 lg:p-6 shadow-xl flex flex-col min-h-0">
       <div class="flex justify-between items-center mb-4 lg:mb-6 shrink-0">
-        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Events History</h2>
+        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Events History 
+            <span class="text-xs font-normal text-slate-400 ml-3 py-1 px-2 bg-slate-800 rounded-full">{{ store.filteredHistory().length }} events</span>
+        </h2>
         <button class="flex items-center gap-2 text-xs lg:text-sm text-slate-400 hover:text-white transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          <svg class="w-4 h-4" ml-1 fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
           Download CSV
         </button>
       </div>
       
-      <!-- Filters Mockup -->
+      <!-- Live Filters Engine -->
       <div class="flex flex-wrap items-end gap-2 lg:gap-3 mb-4 lg:mb-6 shrink-0">
-        <div class="flex flex-col gap-1 w-24 xl:w-32">
+        
+        <div class="flex flex-col gap-1 w-28 xl:w-36">
           <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider">Event Type</label>
-          <input type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500 focus:outline-none" placeholder="All">
+          <select [value]="store.filters().eventType" (change)="onFilterChange({eventType: $any($event.target).value})" 
+                  class="w-full bg-slate-950/80 border border-slate-700/80 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer hover:bg-slate-800 transition-colors">
+            <option value="All">All Events</option>
+            <option value="earthquake">Earthquake</option>
+            <option value="conventional_explosion">Conventional Explosion</option>
+            <option value="nuclear_like">Nuclear-like Activity</option>
+          </select>
         </div>
+
         <div class="flex flex-col gap-1 w-24 xl:w-32">
           <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider">Category</label>
-          <input type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500 focus:outline-none" placeholder="All">
+          <select [value]="store.filters().category" (change)="onFilterChange({category: $any($event.target).value})" 
+                  class="w-full bg-slate-950/80 border border-slate-700/80 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer hover:bg-slate-800 transition-colors">
+            <option value="All">All Categories</option>
+            <option value="field">Field Sensors</option>
+            <option value="datacenter">Datacenter</option>
+          </select>
         </div>
-        <div class="flex flex-col gap-1 w-32 xl:w-40">
-          <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider">Time</label>
-          <div class="flex w-full bg-slate-950 border border-slate-700 rounded items-center overflow-hidden">
-             <input type="text" class="w-full bg-transparent px-2 py-1.5 text-[10px] lg:text-xs text-white focus:outline-none" placeholder="Start - End">
-             <span class="px-2 text-slate-500">📅</span>
+
+        <div class="flex flex-col gap-1 w-40 flex-1 xl:flex-none">
+          <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider w-full flex justify-between">Time 
+             @if(store.isLive()) {
+                 <span class="text-emerald-500 font-bold animate-pulse text-[8px] uppercase tracking-widest my-auto ml-2 flex items-center gap-1">
+                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>Live
+                 </span>
+             }
+          </label>
+          <div class="flex w-full bg-slate-950/80 border border-slate-700/80 rounded items-center overflow-hidden">
+             <!-- Not interactive in this mock version -->
+             <input type="text" disabled [value]="store.filters().timeRange" class="w-full bg-transparent px-2 py-1.5 text-[10px] lg:text-xs text-slate-400 focus:outline-none cursor-not-allowed" placeholder="Start - End">
+             <span class="px-2 text-slate-500 select-none">📅</span>
           </div>
         </div>
-        <button class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] lg:text-xs font-bold py-1.5 px-3 lg:px-4 rounded transition-colors shadow-lg">Apply Filters</button>
-        <button class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-[10px] lg:text-xs font-bold py-1.5 px-3 lg:px-4 rounded transition-colors">Clear</button>
+        
+        <button (click)="store.clearFilters()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-[10px] lg:text-xs font-bold py-[7px] px-3 lg:px-4 rounded transition-colors lg:ml-auto">Clear Filters</button>
       </div>
 
-      <!-- Table Mockup -->
-      <div class="flex-1 overflow-auto custom-scrollbar rounded-lg border border-slate-800 rounded-t-lg bg-slate-950/50 min-h-0 pr-1">
+      <!-- React Table Wrapper -->
+      <div class="flex-1 overflow-auto custom-scrollbar rounded-lg border border-slate-800 rounded-t-lg bg-slate-950/50 min-h-0 pr-1 relative">
         <table class="w-full text-left border-collapse text-xs xl:text-sm">
           <thead class="sticky top-0 z-10 bg-slate-800 shadow">
             <tr class="border-b border-slate-700/50">
@@ -91,29 +122,24 @@
             </tr>
           </thead>
           <tbody>
-            <tr class="border-b border-slate-800 hover:bg-slate-800/60 transition-colors">
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">Borealis Ridge</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">field</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-yellow-500 font-medium">Earthquake</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">North Atlantic</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-500 text-[10px] lg:text-xs">28/03/2026 - 17:25</td>
-            </tr>
-            <tr class="border-b border-slate-800 hover:bg-slate-800/60 transition-colors">
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">Helios Shelf</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">field</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-red-500 font-bold tracking-wide">Nuclear-like event</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">Pacific Trench</td>
-              <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-500 text-[10px] lg:text-xs">28/03/2026 - 16:10</td>
-            </tr>
-            <!-- Force scroll check -->
-            @for (i of [1,2,3,4,5,6,7,8,9]; track i) {
-                <tr class="border-b border-slate-800/30 hover:bg-slate-800/60 transition-colors">
-                    <td class="py-3 px-4 text-slate-500">Historical Event {{i}}</td>
-                    <td class="py-3 px-4 text-slate-500">datacenter</td>
-                    <td class="py-3 px-4 text-emerald-500">OK</td>
-                    <td class="py-3 px-4 text-slate-500">Location {{i}}</td>
-                    <td class="py-3 px-4 text-slate-600 text-[10px] lg:text-xs">27/03/2026 - 10:00</td>
-                </tr>
+            @for (event of store.filteredHistory(); track event.id) {
+              <tr class="border-b border-slate-800 hover:bg-slate-800/60 transition-colors">
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 font-semibold text-slate-300">{{ store.getSensorRef(event.sensor_id)?.name }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400 uppercase tracking-widest text-[9px]">{{ store.getSensorRef(event.sensor_id)?.category }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 tracking-wide" [ngClass]="getEventColorClass(event.category_event)">{{ getEventLabel(event.category_event) }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">{{ store.getSensorRef(event.sensor_id)?.region }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-500 text-[10px] lg:text-xs font-mono">{{ event.timestamp | date:'dd/MM/yyyy - HH:mm:ss' }}</td>
+              </tr>
+            }
+            @empty {
+              <tr>
+                 <td colspan="5" class="text-center py-10">
+                     <div class="flex flex-col items-center justify-center opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                        <span class="text-slate-500 font-bold uppercase tracking-widest text-xs">No Events matched Filters</span>
+                     </div>
+                 </td>
+              </tr>
             }
           </tbody>
         </table>
@@ -123,12 +149,8 @@
     <!-- Charts Mockup partial view -->
     <div class="shrink-0 h-[25%] lg:h-[30%] min-h-[160px] bg-slate-900 border border-slate-800 rounded-xl p-4 lg:p-6 shadow-xl flex flex-col justify-center">
       <h2 class="text-lg lg:text-xl font-bold font-sans text-slate-100 tracking-wide mb-2 lg:mb-4 shrink-0">Events occurred for each sensor</h2>
-      <div class="flex-1 min-h-0 w-full flex items-end gap-2 lg:gap-4 border-l-2 border-b-2 border-slate-700 p-2">
-         <div class="w-8 lg:w-12 bg-slate-500 h-[40%] rounded-t"></div>
-         <div class="w-8 lg:w-12 bg-slate-400 h-[50%] rounded-t"></div>
-         <div class="w-8 lg:w-12 bg-indigo-500 h-[80%] rounded-t"></div>
-         <div class="w-8 lg:w-12 bg-slate-600 h-[65%] rounded-t"></div>
-         <div class="flex-1 flex justify-center items-center text-slate-600 text-xs lg:text-sm font-bold">[ Chart ECharts Placeholder ]</div>
+      <div class="flex-1 min-h-0 w-full flex flex-col justify-center items-center gap-2 border-slate-800 p-2 text-center rounded bg-slate-950/30">
+          <span class="text-indigo-400 font-bold uppercase tracking-widest opacity-80 animate-pulse text-xs">Loading Live Telemetry Engine</span>
       </div>
     </div>
   </section>
