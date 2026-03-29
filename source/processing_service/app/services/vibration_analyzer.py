@@ -51,10 +51,10 @@ class VibrationAnalyzer:
             dominant_idx = np.argmax(magnitudes)
             dominant_freq = xf[dominant_idx]
 
-            print(f"{dominant_freq:.2f}")
+            # print(f"{dominant_freq:.2f}")
             sys.stdout.flush()
 
-            logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
+            # logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
             
             # Send the results obtained via WebSocket to API Gateway
 
@@ -67,7 +67,8 @@ class VibrationAnalyzer:
                 dominant_frequency=float(dominant_freq)
             )
 
-            print(response.model_dump_json())
+            if response.category_event != "":
+                print(response.model_dump_json())
 
             await manager.broadcast(response.model_dump_json())
             

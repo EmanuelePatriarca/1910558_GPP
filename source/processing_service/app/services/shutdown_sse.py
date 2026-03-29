@@ -22,10 +22,9 @@ async def shutdown_sse_task(uri: str):
                     async for sse in event_source.aiter_sse():
                         try:
                             data = json.loads(sse.data)
-                            print(data)
 
                             command = data.get("command")
-                            if command == "SHUTDOWN2":
+                            if command == "SHUTDOWN":
                                 logger.warning("SHUTDOWN command received!")
                                 os.kill(os.getpid(), signal.SIGTERM)
 
