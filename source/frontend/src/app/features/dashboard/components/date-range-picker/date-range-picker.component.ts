@@ -51,11 +51,13 @@ export class DateRangePickerComponent {
   rangeFrom = signal<Date | null>(null);
   rangeTo   = signal<Date | null>(null);
 
-  /** Time spinners – default 00:00 for start, 23:59 for end */
+  /** Time spinners – default 00:00:00 for start, 23:59:59 for end */
   fromHour   = signal(0);
   fromMinute = signal(0);
+  fromSecond = signal(0);
   toHour     = signal(23);
   toMinute   = signal(59);
+  toSecond   = signal(59);
 
   /** Hover state for live range preview */
   private hovered = signal<Date | null>(null);
@@ -68,8 +70,10 @@ export class DateRangePickerComponent {
       this.hovered.set(null);
       this.fromHour.set(0);
       this.fromMinute.set(0);
+      this.fromSecond.set(0);
       this.toHour.set(23);
       this.toMinute.set(59);
+      this.toSecond.set(59);
       this.isOpen.set(false);
     }, { allowSignalWrites: true });
   }
@@ -89,16 +93,18 @@ export class DateRangePickerComponent {
     const t  = this.rangeTo();
     const fh = this.fromHour();
     const fm = this.fromMinute();
+    const fs = this.fromSecond();
     const th = this.toHour();
     const tm = this.toMinute();
+    const ts = this.toSecond();
 
     if (!f && !t) return '';
 
     const fmtDate = (d: Date) => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const fmtTime = (h: number, m: number) => `${this.pad(h)}:${this.pad(m)}`;
+    const fmtTime = (h: number, m: number, s: number) => `${this.pad(h)}:${this.pad(m)}:${this.pad(s)}`;
 
-    if (f && t) return `${fmtDate(f)} ${fmtTime(fh, fm)} – ${fmtDate(t)} ${fmtTime(th, tm)}`;
-    if (f)      return `${fmtDate(f)} ${fmtTime(fh, fm)} – …`;
+    if (f && t) return `${fmtDate(f)} ${fmtTime(fh, fm, fs)} – ${fmtDate(t)} ${fmtTime(th, tm, ts)}`;
+    if (f)      return `${fmtDate(f)} ${fmtTime(fh, fm, fs)} – …`;
     return '';
   });
 
@@ -183,8 +189,10 @@ export class DateRangePickerComponent {
     this.hovered.set(null);
     this.fromHour.set(0);
     this.fromMinute.set(0);
+    this.fromSecond.set(0);
     this.toHour.set(23);
     this.toMinute.set(59);
+    this.toSecond.set(59);
     this.rangeChange.emit({ from: null, to: null });
     this.isOpen.set(false);
   }
@@ -192,9 +200,9 @@ export class DateRangePickerComponent {
   applyRange() {
     if (!this.rangeFrom()) return;
 
-    const from   = this.buildDateTime(this.rangeFrom()!, this.fromHour(), this.fromMinute());
+    const from   = this.buildDateTime(this.rangeFrom()!, this.fromHour(), this.fromMinute(), this.fromSecond());
     const toDate = this.rangeTo() ?? this.rangeFrom()!;
-    const to     = this.buildDateTime(toDate, this.toHour(), this.toMinute(), 59);
+    const to     = this.buildDateTime(toDate, this.toHour(), this.toMinute(), this.toSecond());
 
     this.rangeChange.emit({ from, to });
     this.isOpen.set(false);
@@ -203,11 +211,14 @@ export class DateRangePickerComponent {
   // ── Time Spinner Actions ─────────────────────────────────────────────────────
   private hourSignal(side: 'from' | 'to')   { return side === 'from' ? this.fromHour   : this.toHour;   }
   private minuteSignal(side: 'from' | 'to') { return side === 'from' ? this.fromMinute : this.toMinute; }
+  private secondSignal(side: 'from' | 'to') { return side === 'from' ? this.fromSecond : this.toSecond; }
 
   incrementHour(side: 'from' | 'to')   { this.hourSignal(side).update(h => (h + 1) % 24); }
   decrementHour(side: 'from' | 'to')   { this.hourSignal(side).update(h => (h - 1 + 24) % 24); }
   incrementMinute(side: 'from' | 'to') { this.minuteSignal(side).update(m => (m + 1) % 60); }
   decrementMinute(side: 'from' | 'to') { this.minuteSignal(side).update(m => (m - 1 + 60) % 60); }
+  incrementSecond(side: 'from' | 'to') { this.secondSignal(side).update(s => (s + 1) % 60); }
+  decrementSecond(side: 'from' | 'to') { this.secondSignal(side).update(s => (s - 1 + 60) % 60); }
 
   onHourInput(side: 'from' | 'to', value: string) {
     const n = parseInt(value, 10);
@@ -219,6 +230,11 @@ export class DateRangePickerComponent {
     if (!isNaN(n)) this.minuteSignal(side).set(Math.min(59, Math.max(0, n)));
   }
 
+  onSecondInput(side: 'from' | 'to', value: string) {
+    const n = parseInt(value, 10);
+    if (!isNaN(n)) this.secondSignal(side).set(Math.min(59, Math.max(0, n)));
+  }
+
   onWheelHour(side: 'from' | 'to', event: WheelEvent) {
     event.preventDefault();
     event.deltaY < 0 ? this.incrementHour(side) : this.decrementHour(side);
@@ -227,6 +243,11 @@ export class DateRangePickerComponent {
   onWheelMinute(side: 'from' | 'to', event: WheelEvent) {
     event.preventDefault();
     event.deltaY < 0 ? this.incrementMinute(side) : this.decrementMinute(side);
+  }
+
+  onWheelSecond(side: 'from' | 'to', event: WheelEvent) {
+    event.preventDefault();
+    event.deltaY < 0 ? this.incrementSecond(side) : this.decrementSecond(side);
   }
 
   // ── Day CSS ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,14 @@ import { SensorDashboardState, Event, Sensor, SensorEventRequestEnum, SensorCate
 import { Subscription } from 'rxjs';
 import { STATIC_SENSORS } from '../constants/sensors.data';
 
+export interface AppAlert {
+  id: string;
+  event: Event;
+  sensorName: string;
+  isRead: boolean;
+  receivedAt: Date;
+}
+
 export interface DashboardFilters {
   eventType: string;
   category: string;
@@ -25,6 +33,8 @@ export class DashboardStore implements OnDestroy {
   // -- STATE SIGNALS -- //
   private sensorsBase = signal<Sensor[]>([]);
   public historicalEvents = signal<Event[]>([]);
+  public alertsHistory = signal<AppAlert[]>([]);
+  public historySortOrder = signal<'desc' | 'asc'>('desc');
   
   public filters = signal<DashboardFilters>({
     eventType: 'All',
@@ -39,6 +49,8 @@ export class DashboardStore implements OnDestroy {
   public isLive = signal<boolean>(false);
 
   // -- COMPUTED SIGNALS -- //
+  public unreadAlertsCount = computed(() => this.alertsHistory().filter(a => !a.isRead).length);
+
   public sensors = computed<SensorDashboardState[]>(() => {
     const events = this.historicalEvents();
     return this.sensorsBase().map(sensor => {
@@ -81,7 +93,10 @@ export class DashboardStore implements OnDestroy {
       if (fromMs !== null && evMs < fromMs) { isMatch = false; }
       if (toMs   !== null && evMs > toMs)   { isMatch = false; }
       return isMatch;
-    }).sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
+    }).sort((a,b) => {
+      const diff = b.timestamp.getTime() - a.timestamp.getTime();
+      return this.historySortOrder() === 'desc' ? diff : -diff;
+    });
   });
 
   public getSensorRef(sensorId: string): Sensor | undefined {
@@ -89,6 +104,40 @@ export class DashboardStore implements OnDestroy {
   }
 
   // -- ACTIONS -- //
+  public pushAlert(event: Event, sensorName: string) {
+    const alert: AppAlert = {
+      id: crypto.randomUUID(),
+      event,
+      sensorName,
+      isRead: false,
+      receivedAt: new Date()
+    };
+    
+    this.alertsHistory.update(alerts => {
+      const newArray = [alert, ...alerts];
+      if (newArray.length > 10) {
+        newArray.length = 10;
+      }
+      return newArray;
+    });
+  }
+
+  public markAllAlertsRead() {
+    this.alertsHistory.update(alerts => alerts.map(a => ({ ...a, isRead: true })));
+  }
+
+  public deleteAlert(id: string) {
+    this.alertsHistory.update(alerts => alerts.filter(a => a.id !== id));
+  }
+
+  public clearAllAlerts() {
+    this.alertsHistory.set([]);
+  }
+
+  public toggleHistorySortOrder() {
+    this.historySortOrder.update(s => s === 'desc' ? 'asc' : 'desc');
+  }
+
   updateFilters(newFilters: Partial<DashboardFilters>) {
     this.filters.update(state => ({ ...state, ...newFilters }));
   }
@@ -118,8 +167,25 @@ export class DashboardStore implements OnDestroy {
         { id: 'e6', sensor_id: 'sensor-12', category_event: SensorEventRequestEnum.EARTHQUAKE, dominant_frequency: 1.5, timestamp: new Date(now.getTime() - 1000 * 60 * 220) }
       ]);
       
+      this.isLive.set(true);
       this.isLoading.set(false);
-      this.connectLiveStream();
+
+      // MOCK REAL-TIME ALERTS (US 15 & 16 TEST)
+      setInterval(() => {
+        if (!this.isLive()) return;
+        const randomSensor = STATIC_SENSORS[Math.floor(Math.random() * STATIC_SENSORS.length)];
+        const mockCategories = [SensorEventRequestEnum.EARTHQUAKE, SensorEventRequestEnum.CONVENTIONAL_EXPLOSION, SensorEventRequestEnum.NUCLEAR_LIKE];
+        const randomCategory = mockCategories[Math.floor(Math.random() * mockCategories.length)];
+        const newEvent: Event = {
+          id: `evt-live-${Date.now()}`,
+          sensor_id: randomSensor.id,
+          category_event: randomCategory,
+          dominant_frequency: Math.random() * 10,
+          timestamp: new Date()
+        };
+        this.historicalEvents.update(evs => [newEvent, ...evs]);
+        this.pushAlert(newEvent, randomSensor.name);
+      }, 8000);
     }, 500);
   }
 

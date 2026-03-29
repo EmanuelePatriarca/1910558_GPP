@@ -65,7 +65,7 @@ export class DashboardComponent implements OnInit {
     switch(event) {
       case SensorEventRequestEnum.EARTHQUAKE: return 'Earthquake';
       case SensorEventRequestEnum.CONVENTIONAL_EXPLOSION: return 'Conventional Explosion';
-      case SensorEventRequestEnum.NUCLEAR_LIKE: return 'Nuclear-like event';
+      case SensorEventRequestEnum.NUCLEAR_LIKE: return 'Nuclear-like Event';
       default: return 'OK';
     }
   }

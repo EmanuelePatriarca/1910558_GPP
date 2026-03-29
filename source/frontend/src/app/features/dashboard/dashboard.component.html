@@ -106,7 +106,7 @@
             <option value="All">All Events</option>
             <option value="earthquake">Earthquake</option>
             <option value="conventional_explosion">Conventional Explosion</option>
-            <option value="nuclear_like">Nuclear-like Activity</option>
+            <option value="nuclear_like">Nuclear-like Event</option>
           </select>
         </div>
 
@@ -143,7 +143,12 @@
               <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-[15%]">Category</th>
               <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/5">Event</th>
               <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/5">Region</th>
-              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/4">DateTime</th>
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/4 cursor-pointer hover:text-white transition-colors select-none" (click)="store.toggleHistorySortOrder()">
+                DateTime
+                <span class="inline-block ml-1 font-mono text-indigo-400">
+                  {{ store.historySortOrder() === 'desc' ? '↓' : '↑' }}
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>

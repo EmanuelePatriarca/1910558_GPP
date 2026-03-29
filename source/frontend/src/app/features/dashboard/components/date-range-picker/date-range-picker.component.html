@@ -24,7 +24,7 @@
       </span>
       <span class="text-[10px] font-mono font-semibold shrink-0"
             [class]="rangeFrom() ? 'text-indigo-300' : 'text-slate-600'">
-        {{ rangeFrom() ? pad(fromHour()) + ':' + pad(fromMinute()) : '––:––' }}
+        {{ rangeFrom() ? pad(fromHour()) + ':' + pad(fromMinute()) + ':' + pad(fromSecond()) : '––:––:––' }}
       </span>
 
       <!-- Arrow -->
@@ -39,7 +39,7 @@
       </span>
       <span class="text-[10px] font-mono font-semibold shrink-0"
             [class]="rangeTo() ? 'text-purple-300' : 'text-slate-600'">
-        {{ rangeTo() ? pad(toHour()) + ':' + pad(toMinute()) : '––:––' }}
+        {{ rangeTo() ? pad(toHour()) + ':' + pad(toMinute()) + ':' + pad(toSecond()) : '––:––:––' }}
       </span>
 
     </div>
@@ -133,6 +133,20 @@
                 />
                 <button (click)="decrementMinute('from')" class="spinner-btn">▼</button>
               </div>
+              <span class="text-slate-500 font-bold text-sm select-none">:</span>
+              <!-- Seconds spinner -->
+              <div class="flex flex-col items-center">
+                <button (click)="incrementSecond('from')" class="spinner-btn">▲</button>
+                <input
+                  type="text"
+                  [value]="pad(fromSecond())"
+                  (change)="onSecondInput('from', $any($event.target).value)"
+                  (wheel)="onWheelSecond('from', $event)"
+                  class="spinner-input focus:text-indigo-300"
+                  maxlength="2"
+                />
+                <button (click)="decrementSecond('from')" class="spinner-btn">▼</button>
+              </div>
             </div>
             <div class="text-[9px] text-slate-500 font-mono">
               {{ rangeFrom() ? (rangeFrom()! | date:'dd/MM/yy') : '–' }}
@@ -173,6 +187,20 @@
                 />
                 <button (click)="decrementMinute('to')" class="spinner-btn">▼</button>
               </div>
+              <span class="text-slate-500 font-bold text-sm select-none">:</span>
+              <!-- Seconds spinner -->
+              <div class="flex flex-col items-center">
+                <button (click)="incrementSecond('to')" class="spinner-btn">▲</button>
+                <input
+                  type="text"
+                  [value]="pad(toSecond())"
+                  (change)="onSecondInput('to', $any($event.target).value)"
+                  (wheel)="onWheelSecond('to', $event)"
+                  class="spinner-input focus:text-purple-300"
+                  maxlength="2"
+                />
+                <button (click)="decrementSecond('to')" class="spinner-btn">▼</button>
+              </div>
             </div>
             <div class="text-[9px] text-slate-500 font-mono">
               {{ rangeTo() ? (rangeTo()! | date:'dd/MM/yy') : '–' }}
@@ -185,12 +213,12 @@
       <!-- ── Footer ── -->
       <div class="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between gap-2">
 
-        <div class="text-[10px] text-slate-400 font-mono truncate max-w-[170px]">
+        <div class="text-[10px] text-slate-400 font-mono truncate max-w-[190px]">
           @if (rangeFrom()) {
-            {{ rangeFrom()! | date:'dd/MM' }} {{ pad(fromHour()) }}:{{ pad(fromMinute()) }}
+            {{ rangeFrom()! | date:'dd/MM' }} {{ pad(fromHour()) }}:{{ pad(fromMinute()) }}:{{ pad(fromSecond()) }}
             →
             @if (rangeTo()) {
-              {{ rangeTo()! | date:'dd/MM' }} {{ pad(toHour()) }}:{{ pad(toMinute()) }}
+              {{ rangeTo()! | date:'dd/MM' }} {{ pad(toHour()) }}:{{ pad(toMinute()) }}:{{ pad(toSecond()) }}
             } @else {
               …
             }
