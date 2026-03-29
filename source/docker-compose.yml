@@ -11,7 +11,7 @@ services:
     env_file:
       - /processing_service/.env
     environment:
-      - BROKER_WEBSOCKET_URI=ws://localhost:8081/api/process_data/ws
+      - BROKER_WEBSOCKET_URI=ws://broker:8000/api/process_data/ws
       - SHUTDOWN_SSE_URI=http://simulator:8080/api/control
     networks:
       - backend_network
