@@ -1,0 +1,16 @@
+services:
+  processing_service:
+    build:
+      context: /processing_service
+      dockerfile: Dockerfile
+    container_name: processing_service
+    ports:
+      - "8000:8000"
+    env_file:
+      - /processing_service/.env
+    networks:
+      - backend_network
+
+networks:
+  backend_network:
+    driver: bridge
