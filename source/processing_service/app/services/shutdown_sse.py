@@ -6,8 +6,7 @@ import signal
 import httpx
 from httpx_sse import aconnect_sse
 from app.core.config import settings
-from app.schemas.shutdown_data import ShutdownRequest
-from pydantic import ValidationError
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +21,16 @@ async def shutdown_sse_task(uri: str):
                     
                     async for sse in event_source.aiter_sse():
                         try:
-                            data = ShutdownRequest.model_validate_json(sse.data)
+                            data = json.loads(sse.data)
                             print(data)
 
-                            if data.command == "SHUTDOWN2":
+                            command = data.get("command")
+                            if command == "SHUTDOWN2":
                                 logger.warning("SHUTDOWN command received!")
                                 os.kill(os.getpid(), signal.SIGTERM)
 
-                        except ValidationError as e:
-                            logger.error(f"Failed to validate incoming data: {e} - Message: {message}")
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse JSON: {sse.data}")
                         except Exception as e:
                             logger.error(f"Error processing SSE message: {e}")
 
