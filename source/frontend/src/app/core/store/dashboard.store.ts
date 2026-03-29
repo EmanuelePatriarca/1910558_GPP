@@ -177,8 +177,12 @@ export class DashboardStore implements OnDestroy {
       next: (event: Event) => {
         const parsed = { ...event, timestamp: new Date(event.timestamp) };
 
-        // Always push to liveFrequencyEvents (for the chart — no category required)
-        this.liveFrequencyEvents.update(evs => [parsed, ...evs].slice(0, 200));
+        // Keep only last 20 readings per sensor for the live chart
+        this.liveFrequencyEvents.update(evs => {
+          const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
+          const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
+          return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
+        });
 
         // Only categorized events update history & trigger alerts
         if (parsed.category_event) {
