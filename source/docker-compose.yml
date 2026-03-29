@@ -18,7 +18,7 @@ services:
     networks:
       - seismic-net
 
-  replica-1:
+  processing_service_replica_1:
     build: ./custom_broker
     command: ["uvicorn", "test_replica.test_replica:app", "--host", "0.0.0.0", "--port", "8081"]
     environment:

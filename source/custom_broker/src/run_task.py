@@ -6,11 +6,11 @@ from contextlib import asynccontextmanager
 import itertools
 
 REPLICAS = [
-    "http://replica-1:8081",
-    "http://replica-2:8082",
-    "http://replica-3:8083",
-    "http://replica-4:8084",
-    "http://replica-5:8085",
+    "http://processing_service_replica_1:8081",
+    "http://processing_service_replica_2:8082",
+    "http://processing_service_replica_3:8083",
+    "http://processing_service_replica_4:8084",
+    "http://processing_service_replica_5:8085",
 ]
 replica_cycle = itertools.cycle(REPLICAS)
 
