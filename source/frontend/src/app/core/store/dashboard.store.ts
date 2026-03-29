@@ -150,18 +150,18 @@ export class DashboardStore implements OnDestroy {
     this.isLoading.set(true);
     this.loadError.set(null);
 
-    // 1. Load static sensor registry
+    // 1. Load static sensor registry immediately
     this.sensorsBase.set(STATIC_SENSORS);
 
-    // 2. Fetch historical event data from backend
+    // 2. Open WebSocket immediately — independent of REST call
+    this.connectLiveStream();
+
+    // 3. Fetch historical event data from backend (parallel)
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
         const parsed = events.map(e => ({ ...e, timestamp: new Date(e.timestamp) }));
         this.historicalEvents.set(parsed);
         this.isLoading.set(false);
-
-        // 3. Subscribe to live event stream (SSE)
-        this.connectLiveStream();
       },
       error: (err) => {
         console.error('Failed to load historical events:', err);

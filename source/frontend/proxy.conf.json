@@ -1,0 +1,13 @@
+{
+  "/api": {
+    "target": "http://localhost:8086",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api/v1/events/ws": {
+    "target": "ws://localhost:8086",
+    "secure": false,
+    "ws": true,
+    "changeOrigin": true
+  }
+}
