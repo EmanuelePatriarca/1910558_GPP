@@ -5,7 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: processing_service
     ports:
-      - "8000:8000"
+      - "8086:8000"
+      - "8081:8080"
     env_file:
       - /processing_service/.env
     networks:
