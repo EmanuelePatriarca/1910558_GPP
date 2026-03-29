@@ -23,7 +23,7 @@ export class SensorInfoPanelComponent {
 
   // ── Derived ──────────────────────────────────────────────────────────────
 
-  /** Merge historical + live events for this sensor, oldest first */
+  /** Merge historical + live events for this sensor, oldest first, limit to 20 total for chart */
   sensorEvents = computed(() => {
     const id = this.sensor().id;
     const historical = this.events().filter(e => e.sensor_id === id);
@@ -31,7 +31,12 @@ export class SensorInfoPanelComponent {
     // Deduplicate by id if present, live events take precedence
     const liveIds = new Set(live.map(e => e.id).filter(Boolean));
     const merged = [...live, ...historical.filter(e => !e.id || !liveIds.has(e.id))];
-    return merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    // Sort and keep only the latest 20 for the chart
+    return merged
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Newest first for slicing
+      .slice(0, 20)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // Oldest first for chart x-axis
   });
 
   mapSrc = computed<SafeResourceUrl>(() => {
