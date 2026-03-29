@@ -1,0 +1,121 @@
+<!-- Sensor Info Panel — slide-in overlay -->
+<div class="slide-in absolute inset-0 z-30 bg-slate-900 border border-slate-700 rounded-xl flex flex-col overflow-hidden shadow-2xl">
+
+  <!-- ── Header ── -->
+  <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700/60 shrink-0">
+    <div class="flex items-center gap-2 min-w-0">
+      <!-- Category badge -->
+      <span class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full border shrink-0"
+            [class]="sensor().category === 'field'
+              ? 'text-sky-400 border-sky-700 bg-sky-950/60'
+              : 'text-purple-400 border-purple-700 bg-purple-950/60'">
+        {{ sensor().category }}
+      </span>
+      <h2 class="font-bold text-slate-100 text-base lg:text-lg truncate">{{ sensor().name }}</h2>
+    </div>
+
+    <button
+      (click)="close.emit()"
+      class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors shrink-0 ml-2"
+      title="Close"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Scrollable body ── -->
+  <div class="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 flex flex-col gap-4 min-h-0">
+
+    <!-- Info grid -->
+    <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+      <div class="info-row">
+        <span class="info-label">ID</span>
+        <span class="info-value font-mono">{{ sensor().id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Region</span>
+        <span class="info-value">{{ sensor().region }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Latitude</span>
+        <span class="info-value font-mono">{{ sensor().coordinates.latitude | number:'1.4-4' }}°</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Longitude</span>
+        <span class="info-value font-mono">{{ sensor().coordinates.longitude | number:'1.4-4' }}°</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Unit</span>
+        <span class="info-value font-mono">{{ sensor().measurement_unit }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Sampling rate</span>
+        <span class="info-value font-mono">{{ sensor().sampling_rate_hz }} Hz</span>
+      </div>
+    </div>
+
+    <!-- ── US 18 — Map ── -->
+    <div class="flex flex-col gap-1.5">
+      <h3 class="section-title">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Location
+      </h3>
+      <div class="map-frame w-full" style="height: 160px">
+        <iframe
+          [src]="mapSrc()"
+          width="100%"
+          height="100%"
+          style="border:0; display:block;"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          title="Sensor location map"
+        ></iframe>
+      </div>
+      <a [href]="'https://www.openstreetmap.org/?mlat=' + sensor().coordinates.latitude + '&mlon=' + sensor().coordinates.longitude"
+         target="_blank" rel="noopener"
+         class="text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors self-end">
+        Open in OpenStreetMap ↗
+      </a>
+    </div>
+
+    <!-- ── US 19 — Live Frequency chart ── -->
+    <div class="flex flex-col gap-1.5 flex-1 min-h-0">
+      <h3 class="section-title">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Frequency History
+      </h3>
+
+      @if (sensorEvents().length === 0) {
+        <div class="flex-1 flex flex-col items-center justify-center text-slate-600 text-xs italic min-h-[120px]">
+          <svg class="w-8 h-8 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/>
+          </svg>
+          No frequency data recorded yet
+        </div>
+      } @else {
+        <div class="min-h-[130px] flex-1" style="min-height:130px">
+          <div echarts [options]="frequencyChartOptions()" class="w-full h-full" style="min-height:130px"></div>
+        </div>
+
+        <!-- Event log below chart -->
+        <div class="flex flex-col gap-1 mt-1">
+          @for (ev of sensorEvents(); track ev.id) {
+            <div class="flex items-center justify-between text-[10px] py-1 border-b border-slate-800/60">
+              <span [ngClass]="eventColorClass(ev.category_event)">{{ eventLabel(ev.category_event) }}</span>
+              <span class="font-mono text-slate-500">{{ ev.dominant_frequency | number:'1.2-2' }} Hz</span>
+              <span class="font-mono text-slate-600">{{ ev.timestamp | date:'dd/MM HH:mm' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+  </div>
+</div>

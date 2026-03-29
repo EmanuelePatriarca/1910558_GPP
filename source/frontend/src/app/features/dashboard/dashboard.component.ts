@@ -4,11 +4,12 @@ import { DashboardStore } from '../../core/store/dashboard.store';
 import { Sensor, SensorDashboardState, SensorEventRequestEnum } from '../../core/models/sensor.model';
 import { EventDistributionChartComponent } from './components/frequency-chart/event-distribution-chart.component';
 import { DateRangePickerComponent, DateRange } from './components/date-range-picker/date-range-picker.component';
+import { SensorInfoPanelComponent } from './components/sensor-info-panel/sensor-info-panel.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, EventDistributionChartComponent, DateRangePickerComponent],
+  imports: [CommonModule, EventDistributionChartComponent, DateRangePickerComponent, SensorInfoPanelComponent],
   providers: [DatePipe], // Used for history table formatting natively
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -16,8 +17,10 @@ import { DateRangePickerComponent, DateRange } from './components/date-range-pic
 })
 export class DashboardComponent implements OnInit {
 
-  selectedSensorId = 'All';
-  pickerResetKey = 0;
+  selectedSensorId   = 'All';
+  pickerResetKey     = 0;
+  /** Sensor currently shown in the info panel (null = panel closed) */
+  selectedInfoSensor: SensorDashboardState | null = null;
 
   // Iniezione dello State Manager reattivo globale
   public store = inject(DashboardStore);
@@ -74,6 +77,16 @@ export class DashboardComponent implements OnInit {
   onSensorClick(sensor: Sensor) {
     this.selectedSensorId = this.selectedSensorId === sensor.id ? 'All' : sensor.id;
     this.onFilterChange({ sensorId: this.selectedSensorId });
+  }
+
+  /** Opens the info panel for the given sensor */
+  onInfoClick(sensor: SensorDashboardState, event: MouseEvent) {
+    event.stopPropagation();
+    this.selectedInfoSensor = this.selectedInfoSensor?.id === sensor.id ? null : sensor;
+  }
+
+  closeInfoPanel() {
+    this.selectedInfoSensor = null;
   }
 
   onDateRangeChange(range: DateRange) {
