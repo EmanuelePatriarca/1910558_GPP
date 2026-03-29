@@ -9,3 +9,12 @@ asyncpg>=0.30.0
 # Environment & Validation
 pydantic-settings>=2.2.0
 
+# FFT Analysis
+numpy>=1.26.0
+
+# WebSocket Client
+websockets>=12.0
+
+# SSE Client
+httpx>=0.27.0
+httpx-sse>=0.4.0
