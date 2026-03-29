@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     deploy:
       replicas: 5
-    ports:
-      - "8086-8090:8000"
     depends_on:
       - broker
     env_file:
@@ -35,11 +33,20 @@ services:
     networks:
       - backend_network
 
+  gateway:
+    build:
+      context: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - processing_service
+    networks:
+      - backend_network
+
   frontend:
     build:
       context: ./frontend
-    ports:
-      - "80:80"
     networks:
       - backend_network
     depends_on:
