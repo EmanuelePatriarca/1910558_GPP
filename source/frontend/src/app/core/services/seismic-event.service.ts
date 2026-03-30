@@ -30,97 +30,56 @@ export class SeismicEventService {
   }
 
   /**
-   * Apre un WebSocket "immortale" ad alta velocità.
-   * Gestisce automaticamente il failover e la riconnessione trasparente.
+   * Apre uno stream SSE (Server-Sent Events) per ricevere dati in real-time.
+   * La riconnessione è gestita nativamente dal browser.
    */
-  connectWebSocket(): Observable<Event> {
+  connectStream(): Observable<Event> {
     return new Observable<Event>(observer => {
-      const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/v1/events/ws`;
-      let socket: WebSocket;
-      let handshakeTimeoutRef: any;
-      let isClosed = false;
+      const sseUrl = `${window.location.origin}/api/v1/events/stream`;
+      let eventSource: EventSource;
 
-      const createSocket = () => {
-        if (isClosed) return;
-        
+      const initSSE = () => {
         this.statusSubject.next('CONNECTING');
-        socket = new WebSocket(wsUrl);
+        eventSource = new EventSource(sseUrl);
 
-        // Meccanismo di sicurezza: se l'handshake impiega troppo tempo, forziamo la chiusura
-        // del socket per innescare immediatamente il failover verso una replica sana.
-        handshakeTimeoutRef = setTimeout(() => {
-           if (socket.readyState === WebSocket.CONNECTING) {
-              socket.onclose = null;
-              socket.onerror = null;
-              socket.onopen = null;
-              socket.close();
-              this.statusSubject.next('CLOSED');
-              observer.error(new Error('Handshake timeout - forcing failover'));
-           }
-        }, this.HANDSHAKE_TIMEOUT);
-
-        socket.onopen = () => {
-          clearTimeout(handshakeTimeoutRef);
+        eventSource.onopen = () => {
           this.statusSubject.next('OPEN');
-          console.log('WS Connection established.');
+          console.log('SSE Connection established.');
         };
 
-        socket.onmessage = (message: MessageEvent) => {
+        eventSource.onmessage = (event: MessageEvent) => {
           try {
-            const raw = JSON.parse(message.data);
-            const event: Event = {
+            const raw = JSON.parse(event.data);
+            const seismicEvent: Event = {
               ...raw,
               timestamp: new Date(raw.timestamp)
             };
-            observer.next(event);
+            observer.next(seismicEvent);
           } catch (e) {
-            console.error('Failed to parse WS payload:', e);
+            console.error('Failed to parse SSE payload:', e);
           }
         };
 
-        socket.onerror = (error) => {
-          // onerror is usually followed by onclose, but we log it for clarity
-          console.error('WS Connection error:', error);
-        };
-
-        socket.onclose = (event) => {
-          clearTimeout(handshakeTimeoutRef);
-          this.statusSubject.next('CLOSED');
-          
-          if (!event.wasClean) {
-            console.warn(`WS Connection lost (code: ${event.code}). Retrying...`);
-            observer.error(new Error(`Connection broken (code: ${event.code})`));
-          } else {
-            console.warn('WS Connection closed gracefully by server. Repeating...');
-            observer.complete(); // repeat() will handle this
+        eventSource.onerror = (error) => {
+          // SSE riconnette automaticamente, ma aggiorniamo lo stato per la UI
+          if (eventSource.readyState === EventSource.CONNECTING) {
+            this.statusSubject.next('CONNECTING');
+          } else if (eventSource.readyState === EventSource.CLOSED) {
+            this.statusSubject.next('CLOSED');
           }
+          console.error('SSE Connection error/reconnecting...', error);
         };
       };
 
-      createSocket();
+      initSSE();
 
+      // Pulizia alla disiscrizione
       return () => {
-        isClosed = true;
-        clearTimeout(handshakeTimeoutRef);
-        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-          socket.onclose = null;
-          socket.onerror = null;
-          socket.close();
+        if (eventSource) {
+          eventSource.close();
+          this.statusSubject.next('CLOSED');
         }
       };
-    }).pipe(
-      // Strategia di riconnessione aggressiva in caso di errore o chiusura sporca (failover)
-      retry({
-        delay: (err, count) => {
-          // Zero delay per i primi due tentativi per assorbire istantaneamente i glitch di rete
-          const delayTime = count <= 2 ? 0 : Math.min(this.RECONNECT_INTERVAL * Math.pow(1.1, count - 2), 3000);
-          return timer(delayTime);
-        }
-      }),
-      // Gestione delle chiusure pulite: ripetiamo lo stream indefinitamente
-      repeat({
-        delay: () => timer(this.RECONNECT_INTERVAL)
-      })
-    );
+    });
   }
 }
