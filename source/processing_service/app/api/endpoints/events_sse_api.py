@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from app.services.sse_manager import sse_manager
+from app.services.events_sse import events_sse_manager
 
 router = APIRouter()
 
@@ -11,7 +11,7 @@ async def events_sse_stream():
     Restituisce una StreamingResponse che mantiene aperta la connessione HTTP.
     """
     return StreamingResponse(
-        sse_manager.subscribe(),
+        events_sse_manager.subscribe(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
