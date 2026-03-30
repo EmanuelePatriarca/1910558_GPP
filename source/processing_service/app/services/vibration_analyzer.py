@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 from app.services.events_websocket import manager
 from app.schemas.event_data import EventDataResponse
+from app.services.database_manager import save_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class VibrationAnalyzer:
         self.timestamps = []
         self.values = []
         self.sensor_id = sensor_id
+        self.event_detected = ""
 
     async def add_data(self, sensor_id, timestamp: float, value: float):
 
@@ -50,11 +52,6 @@ class VibrationAnalyzer:
             magnitudes = np.abs(yf)
             dominant_idx = np.argmax(magnitudes)
             dominant_freq = xf[dominant_idx]
-
-            # print(f"{dominant_freq:.2f}")
-            sys.stdout.flush()
-
-            # logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
             
             # Send the results obtained via WebSocket to API Gateway
 
@@ -67,8 +64,23 @@ class VibrationAnalyzer:
                 dominant_frequency=float(dominant_freq)
             )
 
+            # Saving considerable events to db only if the previous event detected is different from the current one
+            # Example: Earthquake begin -> event_detected = "earthquake" != "" -> Event saved
+            #          Earthquake continues -> event_detected = "earthquake" == "earthquake" -> No event saved
+            #          Earthquake ends -> event_detected = "" != "earthquake" -> Event not saved being not a considerable event
+            #
+            # This logic is to prevent the same replica to save event multiple time
+
             if response.category_event != "":
+
+                if self.event_detected != response.category_event:
+                    self.event_detected = response.category_event
+
+                    if self.event_detected != "":
+                        await save_event(response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
+
                 print(response.model_dump_json())
+
 
             await manager.broadcast(response.model_dump_json())
             
