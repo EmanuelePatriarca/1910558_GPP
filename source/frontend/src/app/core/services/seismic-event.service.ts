@@ -26,7 +26,7 @@ export class SeismicEventService {
 
   /** Fetches the full historical event log on startup (US-08) */
   getHistoricalEvents(): Observable<Event[]> {
-    return this.http.get<Event[]>(`${this.apiUrl}/history`);
+    return this.http.get<Event[]>(`${this.apiUrl}/api/history`);
   }
 
   /**
