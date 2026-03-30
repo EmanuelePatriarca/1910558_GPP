@@ -192,13 +192,15 @@ export class DashboardStore implements OnDestroy {
   }
 
   /**
-   * Recupera lo snapshot più recente degli eventi dal server.
+   * Recupera lo snapshot più recente degli eventi dal server e sincronizza gli alert persi.
    */
   public refreshHistory() {
     if (this.historicalEvents().length === 0) {
       this.isLoading.set(true);
     }
     this.loadError.set(null);
+
+    const currentEventIds = new Set(this.historicalEvents().map(e => e.id));
 
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
@@ -207,10 +209,41 @@ export class DashboardStore implements OnDestroy {
           return { 
             ...e, 
             timestamp,
-            // Assegnazione ID deterministico se mancante
+            // ID deterministico
             id: e.id ?? this.generateEventId({ ...e, timestamp })
           };
         });
+
+        // 1. Identificazione eventi "persi" (nuovi alert critici)
+        const newAlerts: AppAlert[] = [];
+        parsed.forEach(ev => {
+          // Se l'evento ha una categoria (è un alert) e non è tra gli ID noti
+          if (ev.category_event && !currentEventIds.has(ev.id)) {
+            const sensor = this.sensorsBase().find(s => s.id === ev.sensor_id);
+            newAlerts.push({
+              id: ev.id,
+              event: ev,
+              sensorName: sensor?.name || 'Unknown Sensor',
+              isRead: false,
+              receivedAt: new Date()
+            });
+          }
+        });
+
+        // 2. Notifica silenziosa per gli alert di recupero
+        if (newAlerts.length > 0) {
+           // Ordiniamo gli alert dal più vecchio al più recente per l'inserimento
+           // ma AppComponent vedrà sempre l'ultimo in lista (il più recente) per il toast
+           newAlerts.sort((a,b) => a.event.timestamp.getTime() - b.event.timestamp.getTime());
+           
+           this.alertsHistory.update(current => {
+              const updated = [...newAlerts.reverse(), ...current];
+              return updated.slice(0, 10); // Manteniamo solo gli ultimi 10 alert storici
+           });
+           console.log(`Alert Recovery: Syncing ${newAlerts.length} missed events.`);
+        }
+
+        // 3. Aggiornamento storico visibile
         this.historicalEvents.set(parsed);
         this.isLoading.set(false);
       },
