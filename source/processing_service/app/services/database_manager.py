@@ -6,8 +6,8 @@ from app.schemas.event_data import EventDataResponse
 # Connection parameters (read from Docker environment variables or using defaults)
 DB_USER = os.getenv("POSTGRES_USER", "admin")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "supersecret")
-DB_DB = os.getenv("POSTGRES_DB", "seismic_data")
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost") 
+DB_DB = os.getenv("POSTGRES_DB", "event_data")
+DB_HOST = os.getenv("POSTGRES_HOST", "postgres_db")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 async def connect_to_db():
@@ -66,6 +66,7 @@ def get_time_bucket(timestamp: datetime, window_seconds: int = 2) -> datetime:
 
     # New timestamp truncated to the bucket start: 12:00:01.789 -> 12:00:00
     return timestamp.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
+
 async def get_seismic_history(conn) -> list[EventDataResponse]:
 
     if conn is None:
@@ -79,7 +80,7 @@ async def get_seismic_history(conn) -> list[EventDataResponse]:
             ORDER BY timestamp DESC;
         """
         rows = await conn.fetch(query)
-        
+
         history = []
         for row in rows:
             event = EventDataResponse(
@@ -89,7 +90,7 @@ async def get_seismic_history(conn) -> list[EventDataResponse]:
                 dominant_frequency=row["dominant_frequency"]
             )
             history.append(event)
-            
+
         return history
 
     except Exception as e:
