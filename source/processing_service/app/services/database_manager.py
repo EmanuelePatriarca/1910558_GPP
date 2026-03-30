@@ -24,7 +24,7 @@ async def connect_to_db():
         print(f"Error during connection to DB: {e}")
         return None
 
-async def save_event(sensor_id: str, event_timestamp: str, category_event: str, dominant_frequency: float):
+async def save_event(event_id: int, sensor_id: str, event_timestamp: str, category_event: str, dominant_frequency: float):
 
     conn = await connect_to_db()
 
@@ -35,16 +35,16 @@ async def save_event(sensor_id: str, event_timestamp: str, category_event: str, 
     try:
         parsed_timestamp = datetime.fromisoformat(event_timestamp.replace('Z', '+00:00'))
 
-        time_bucket = get_time_bucket(parsed_timestamp, 2)
+        time_bucket = get_time_bucket(parsed_timestamp, 5)
 
         query = """
-            INSERT INTO seismic_events (sensor_id, timestamp, category_event, dominant_frequency, time_bucket)
+            INSERT INTO seismic_events (event_id,sensor_id, timestamp, category_event, dominant_frequency)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT DO NOTHING;
         """
         commit = "COMMIT;"
 
-        result = await conn.execute(query, sensor_id, parsed_timestamp, category_event, dominant_frequency, time_bucket)
+        result = await conn.execute(query, event_id, sensor_id, parsed_timestamp, category_event, dominant_frequency)
         await conn.execute(commit)
 
         if result == "INSERT 0 1":
@@ -58,7 +58,7 @@ async def save_event(sensor_id: str, event_timestamp: str, category_event: str, 
     finally:
         await conn.close()
 
-def get_time_bucket(timestamp: datetime, window_seconds: int = 2) -> datetime:
+def get_time_bucket(timestamp: datetime, window_seconds: int = 5) -> datetime:
 
     total_seconds = timestamp.hour * 3600 + timestamp.minute * 60 + timestamp.second
     bucketed_total_seconds = (total_seconds // window_seconds) * window_seconds

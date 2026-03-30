@@ -5,7 +5,7 @@ from typing import AsyncGenerator
 
 logger = logging.getLogger(__name__)
 
-class SSEManager:
+class EventsSSEManager:
     """
     Gestore centralizzato per lo streaming Server-Sent Events (SSE).
     Mantiene una lista di code (Queue) attive, una per ogni client connesso.
@@ -49,4 +49,4 @@ class SSEManager:
             await queue.put(message)
 
 # Istanza globale del gestore SSE
-sse_manager = SSEManager()
+events_sse_manager = EventsSSEManager()

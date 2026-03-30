@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import logging
 from datetime import datetime, timezone
-from app.services.sse_manager import sse_manager
+from app.services.events_sse import events_sse_manager
 from app.schemas.event_data import EventDataResponse
 from app.services.database_manager import save_event
 
@@ -16,6 +16,7 @@ class VibrationAnalyzer:
         self.values = []
         self.sensor_id = sensor_id
         self.event_detected = ""
+        self.ids_last_events_detected = {"earthquake": 0, "conventional_explosion": 0, "nuclear_like": 0}
 
     async def add_data(self, sensor_id, timestamp: float, value: float):
 
@@ -91,17 +92,21 @@ class VibrationAnalyzer:
                     if self.event_detected != response.category_event:
                         self.event_detected = response.category_event
 
-                        await save_event(response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
-                        await sse_manager.broadcast(response.model_dump_json())
+                        event_id = self.ids_last_events_detected[response.category_event] + 1
+                        self.ids_last_events_detected[response.category_event] = event_id
+
+                        await save_event(event_id, response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
+                        await events_sse_manager.broadcast(response.model_dump_json())
 
                     else:
 
                         response.category_event = ""
-                        await sse_manager.broadcast(response.model_dump_json())
+                        await events_sse_manager.broadcast(response.model_dump_json())
 
                 else:
 
-                    await sse_manager.broadcast(response.model_dump_json())
+                    self.event_detected = response.category_event
+                    await events_sse_manager.broadcast(response.model_dump_json())
 
             except Exception as e:
                 logger.error(f"Error broadcasting event or saving event to DB: {e}")
