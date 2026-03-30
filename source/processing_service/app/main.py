@@ -18,7 +18,6 @@ def get_application() -> FastAPI:
         yield
         await broker_websocket.broker_manager.stop()
         await shutdown_sse.stop()
-
     application = FastAPI(
         title=settings.PROJECT_NAME,
         lifespan=lifespan,

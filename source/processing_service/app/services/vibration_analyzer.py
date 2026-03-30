@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 from app.services.events_websocket import manager
 from app.schemas.event_data import EventDataResponse
+from app.services.database_manager import save_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class VibrationAnalyzer:
         self.timestamps = []
         self.values = []
         self.sensor_id = sensor_id
+        self.event_detected = ""
 
     async def add_data(self, sensor_id, timestamp: float, value: float):
 
@@ -30,6 +32,9 @@ class VibrationAnalyzer:
             self.values = self.values[self.step_size:]
 
     async def calculate_dominant_frequency(self):
+
+        response = None
+
         try:
             t = np.array(self.timestamps)
             y = np.array(self.values)
@@ -51,11 +56,6 @@ class VibrationAnalyzer:
             dominant_idx = np.argmax(magnitudes)
             dominant_freq = xf[dominant_idx]
 
-            # print(f"{dominant_freq:.2f}")
-            sys.stdout.flush()
-
-            # logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
-            
             # Send the results obtained via WebSocket to API Gateway
 
             event_time = datetime.fromtimestamp(self.timestamps[-1], tz=timezone.utc).isoformat()
@@ -67,20 +67,51 @@ class VibrationAnalyzer:
                 dominant_frequency=float(dominant_freq)
             )
 
-            if response.category_event != "":
-                print(response.model_dump_json())
-
-            await manager.broadcast(response.model_dump_json())
-            
         except Exception as e:
             logger.error(f"Error computing FFT: {e}")
+
+        # Saving considerable events to db only if the previous event detected is different from the current one
+        # Example: Earthquake begin -> event_detected = "earthquake" != "" -> Event saved
+        #          Earthquake continues -> event_detected = "earthquake" == "earthquake" -> No event saved
+        #          Earthquake ends -> event_detected = "" != "earthquake" -> Event not saved being not a considerable event
+        #
+        # This logic w to prevent the same replica to save event multiple time
+
+        # Broadcast to gateway:
+        # A considerable event is sent with category_event != "" only once, then it is sent with category_event = ""
+        # in this way the frontend can correctly populate:
+        # 1) the event history (considerable events are unique)
+        # 2) the graph of all the events (considerable events are shown untile they last)
+
+        if response is not None:
+            try:
+
+                if response.category_event != "":
+
+                    if self.event_detected != response.category_event:
+                        self.event_detected = response.category_event
+
+                        await save_event(response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
+                        await manager.broadcast(response.model_dump_json())
+
+                    else:
+
+                        response.category_event = ""
+                        await manager.broadcast(response.model_dump_json())
+
+                else:
+
+                    await manager.broadcast(response.model_dump_json())
+
+            except Exception as e:
+                logger.error(f"Error broadcasting event or saving event to DB: {e}")
 
 def categorize_event(dominant_frequency):
     if dominant_frequency < 0.5:
         return ""
     elif dominant_frequency < 3.0:
         return "earthquake"
-    elif dominant_frequency < 5.0:
+    elif dominant_frequency < 8.0:
         return "conventional_explosion"
     else:
         return "nuclear_like"

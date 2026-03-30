@@ -26,8 +26,7 @@ async def shutdown_sse_task(uri: str):
                             command = data.get("command")
                             if command == "SHUTDOWN":
                                 logger.warning("SHUTDOWN command received!")
-                                os._exit(1)
-                                # os.kill(os.getpid(), signal.SIGKILL)
+                                os.kill(os.getpid(), signal.SIGTERM)
 
                         except json.JSONDecodeError as e:
                             logger.error(f"Failed to parse JSON: {sse.data}")
