@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS seismic_events (
     timestamp TIMESTAMPTZ NOT NULL,       -- TIMESTAMPTZ gestisce i fusi orari
     category_event VARCHAR(50) NOT NULL,
     dominant_frequency DOUBLE PRECISION NOT NULL,
+    time_bucket TIMESTAMPTZ NOT NULL, 
     
     -- La tua eccellente Chiave Primaria Composta!
-    PRIMARY KEY (sensor_id, timestamp)
+    PRIMARY KEY (sensor_id, time_bucket, category_event)
 );
