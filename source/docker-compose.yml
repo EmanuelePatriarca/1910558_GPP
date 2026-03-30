@@ -1,15 +1,14 @@
 services:
-  processing_service_replica_1:
+  processing_service:
     build:
-      context: /processing_service
+      context: ./processing_service
       dockerfile: Dockerfile
-    container_name: processing_service
-    ports:
-      - "8086:8000"
+    deploy:
+      replicas: 5
     depends_on:
       - broker
     env_file:
-      - /processing_service/.env
+      - ./processing_service/.env
     environment:
       - BROKER_WEBSOCKET_URI=ws://broker:8000/ws/stream
       - SHUTDOWN_SSE_URI=http://simulator:8080/api/control
@@ -33,6 +32,26 @@ services:
       - "8080:8080"
     networks:
       - backend_network
+
+  gateway:
+    build:
+      context: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - processing_service
+    networks:
+      - backend_network
+
+  frontend:
+    build:
+      context: ./frontend
+    networks:
+      - backend_network
+    depends_on:
+      - broker
+      - processing_service
 
   postgres_db:
     # INVECE di 'image:', usiamo 'build:' puntando alla nostra nuova cartella

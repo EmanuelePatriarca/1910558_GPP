@@ -1,0 +1,197 @@
+<div class="flex-1 min-h-0 w-full grid grid-cols-1 xl:grid-cols-[4.5fr_5.5fr] gap-2 xl:gap-3 relative">
+
+  <!-- Loading Overlay temporaneo -->
+  @if (store.isLoading()) {
+    <div class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-xl">
+       <div class="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+       <span class="mt-4 text-sm tracking-widest text-slate-400 font-mono uppercase animate-pulse">Establishing Secure Uplink</span>
+    </div>
+  }
+
+  <!-- Left Column: Sensors -->
+  <section class="flex flex-col h-full min-h-0">
+    <div class="relative flex-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl flex flex-col overflow-hidden">
+
+      <!-- Compressed inner container -->
+      <div class="flex-1 p-2 lg:p-3 flex flex-col gap-2 lg:gap-3 min-h-0">
+        <!-- Sensor tiles (hidden behind panel if panel is open) -->
+        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide shrink-0">Last Occurred Event</h2>
+
+        <!-- ── Field Sensors ── -->
+        <div class="flex flex-col gap-1.5 lg:gap-2 flex-[3] min-h-0">
+          <div class="flex items-center gap-2 shrink-0">
+            <h3 class="text-xs lg:text-sm uppercase text-slate-400 font-semibold tracking-widest shrink-0">Field Sensors</h3>
+            <div class="flex-1 h-px bg-slate-800"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 xl:gap-3 flex-1 min-h-0 auto-rows-fr">
+            @for (sensor of store.fieldSensors(); track sensor.id) {
+              <div class="relative rounded border-2 p-1.5 pt-4 lg:p-2 lg:pt-5 flex flex-col justify-center items-center text-center transition-all"
+                [ngClass]="getSensorColorTheme(sensor)">
+              <button
+                (click)="onInfoClick(sensor, $event)"
+                class="absolute top-1.5 right-1.5 rounded-full w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center border border-current transition-opacity"
+                [class]="selectedInfoSensor?.id === sensor.id ? 'opacity-100 bg-white/20' : 'opacity-70 hover:opacity-100'"
+                title="Sensor info">
+                <span class="text-[9px] lg:text-[10px] font-bold">i</span>
+              </button>
+              <span class="font-semibold text-xs lg:text-sm mb-0.5 lg:mb-1 line-clamp-2 leading-tight cursor-pointer hover:font-bold transition-colors" (click)="onSensorClick(sensor)">{{ sensor.name }}</span>
+              <span class="text-[10px] lg:text-xs font-semibold opacity-90">{{ getEventLabel(sensor.lastEvent?.category_event) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+        <!-- ── Datacenter Sensors ── -->
+        <div class="flex flex-col gap-1.5 lg:gap-2 flex-[2] min-h-0">
+          <div class="flex items-center gap-2 shrink-0">
+            <h3 class="text-xs lg:text-sm uppercase text-slate-400 font-semibold tracking-widest shrink-0">Datacenter Sensors</h3>
+            <div class="flex-1 h-px bg-slate-800"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 xl:gap-3 flex-1 min-h-0 auto-rows-fr">
+            @for (sensor of store.datacenterSensors(); track sensor.id) {
+              <div class="relative rounded border-2 p-1.5 pt-4 lg:p-2 lg:pt-5 flex flex-col justify-center items-center text-center transition-all"
+                [ngClass]="getSensorColorTheme(sensor)">
+              <button
+                (click)="onInfoClick(sensor, $event)"
+                class="absolute top-1.5 right-1.5 rounded-full w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center border border-current transition-opacity"
+                [class]="selectedInfoSensor?.id === sensor.id ? 'opacity-100 bg-white/20' : 'opacity-70 hover:opacity-100'"
+                title="Sensor info">
+                <span class="text-[9px] lg:text-[10px] font-bold">i</span>
+              </button>
+              <span class="font-semibold text-xs lg:text-sm mb-0.5 lg:mb-1 leading-tight cursor-pointer hover:font-bold transition-colors" (click)="onSensorClick(sensor)">{{ sensor.name }}</span>
+              <span class="text-[10px] lg:text-xs font-semibold opacity-90">{{ getEventLabel(sensor.lastEvent?.category_event) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+      </div>
+
+      <!-- ── Sensor Info Panel overlay (US 7 / 18 / 19) ── -->
+      @if (selectedInfoSensor) {
+        <app-sensor-info-panel
+          [sensor]="selectedInfoSensor"
+          [events]="store.historicalEvents()"
+          [liveEvents]="store.liveFrequencyEvents()"
+          (close)="closeInfoPanel()"
+        />
+      }
+
+    </div>
+  </section>
+
+
+
+
+  <!-- Right Column: History & Charts -->
+  <section class="flex flex-col gap-2 h-full min-h-0">
+    
+    <!-- History Grid Partial -->
+    <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2 lg:p-2 shadow-xl flex flex-col min-h-0">
+      <div class="flex justify-between items-center mb-4 lg:mb-6 shrink-0">
+        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Events History 
+            <span class="text-xs font-normal text-slate-400 ml-3 py-1 px-2 bg-slate-800 rounded-full">{{ store.filteredHistory().length }} events</span>
+        </h2>
+        <button (click)="exportToExcel()" class="flex items-center gap-2 text-xs lg:text-sm text-slate-400 hover:text-white transition-colors">
+          <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Download XLSX
+        </button>
+      </div>
+      
+      <!-- Live Filters Engine -->
+      <div class="flex flex-wrap items-end gap-2 lg:gap-3 mb-4 lg:mb-6 shrink-0">
+        
+        <div class="flex flex-col gap-1 w-28 xl:w-36">
+          <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider">Event Type</label>
+          <select [value]="store.filters().eventType" (change)="onFilterChange({eventType: $any($event.target).value})" 
+                  class="w-full bg-slate-950/80 border border-slate-700/80 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer hover:bg-slate-800 transition-colors">
+            <option value="All">All Events</option>
+            <option value="earthquake">Earthquake</option>
+            <option value="conventional_explosion">Conventional Explosion</option>
+            <option value="nuclear_like">Nuclear-like Event</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1 w-24 xl:w-32">
+          <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider">Category</label>
+          <select [value]="store.filters().category" (change)="onFilterChange({category: $any($event.target).value})" 
+                  class="w-full bg-slate-950/80 border border-slate-700/80 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer hover:bg-slate-800 transition-colors">
+            <option value="All">All Categories</option>
+            <option value="field">Field Sensors</option>
+            <option value="datacenter">Datacenter</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1 w-90 flex-1 xl:flex-none">
+          <label class="text-[9px] lg:text-[10px] uppercase text-slate-500 font-bold tracking-wider w-full flex justify-between">Time Range
+             @if(store.connectionStatus() === 'OPEN') {
+                 <span class="text-emerald-500 font-bold animate-pulse text-[8px] uppercase tracking-widest my-auto ml-2 flex items-center gap-1">
+                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>Live
+                 </span>
+             } @else if (store.connectionStatus() === 'CONNECTING') {
+                <span class="text-amber-500 font-bold animate-pulse text-[8px] uppercase tracking-widest my-auto ml-2 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-ping"></span>Reconnecting...
+                </span>
+             } @else {
+                <span class="text-red-500 font-bold text-[8px] uppercase tracking-widest my-auto ml-2 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>Disconnected
+                </span>
+             }
+          </label>
+          <app-date-range-picker (rangeChange)="onDateRangeChange($event)" [resetKey]="pickerResetKey"></app-date-range-picker>
+        </div>
+        
+        <button (click)="store.clearFilters(); selectedSensorId = 'All'; pickerResetKey = pickerResetKey + 1" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-[10px] lg:text-xs font-bold py-[7px] px-3 lg:px-4 rounded transition-colors lg:ml-auto">Clear Filters</button>
+      </div>
+
+      <!-- React Table Wrapper -->
+      <div class="flex-1 overflow-auto custom-scrollbar rounded-lg border border-slate-800 rounded-t-lg bg-slate-950/50 min-h-0 pr-1 relative">
+        <table class="w-full text-left border-collapse text-xs xl:text-sm">
+          <thead class="sticky top-0 z-10 bg-slate-800 shadow">
+            <tr class="border-b border-slate-700/50">
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/5">Sensor</th>
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-[15%]">Category</th>
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/5">Event</th>
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/5">Region</th>
+              <th class="py-2.5 px-3 lg:px-4 font-semibold text-slate-300 w-1/4 cursor-pointer hover:text-white transition-colors select-none" (click)="store.toggleHistorySortOrder()">
+                DateTime
+                <span class="inline-block ml-1 font-mono text-indigo-400">
+                  {{ store.historySortOrder() === 'desc' ? '↓' : '↑' }}
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (event of store.filteredHistory(); track event.id) {
+              <tr class="border-b border-slate-800 hover:bg-slate-800/60 transition-colors">
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 font-semibold text-slate-300">{{ store.getSensorRef(event.sensor_id)?.name }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400 uppercase tracking-widest text-[9px]">{{ store.getSensorRef(event.sensor_id)?.category }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 tracking-wide" [ngClass]="getEventColorClass(event.category_event)">{{ getEventLabel(event.category_event) }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-400">{{ store.getSensorRef(event.sensor_id)?.region }}</td>
+                <td class="py-2.5 lg:py-3 px-3 lg:px-4 text-slate-500 text-[10px] lg:text-xs font-mono">{{ event.timestamp | date:'dd/MM/yyyy - HH:mm:ss' }}</td>
+              </tr>
+            }
+            @empty {
+              <tr>
+                 <td colspan="5" class="text-center py-10">
+                     <div class="flex flex-col items-center justify-center opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                        <span class="text-slate-500 font-bold uppercase tracking-widest text-xs">No Events matched Filters</span>
+                     </div>
+                 </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Charts Mockup partial view -->
+    <div class="shrink-0 h-[25%] lg:h-[35%] min-h-[200px] bg-slate-900 border border-slate-800 rounded-xl p-2 lg:p-2 shadow-xl flex flex-col">
+      <h2 class="text-lg lg:text-xl font-bold font-sans text-slate-100 tracking-wide mb-2 shrink-0">Events Distribution</h2>
+      <div class="flex-1 w-full min-h-0 mt-4 relative">
+          <app-event-distribution-chart [sensors]="store.sensors()" [events]="store.historicalEvents()"></app-event-distribution-chart>
+      </div>
+    </div>
+  </section>
+
+</div>

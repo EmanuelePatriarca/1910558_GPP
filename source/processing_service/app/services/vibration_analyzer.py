@@ -51,10 +51,10 @@ class VibrationAnalyzer:
             dominant_idx = np.argmax(magnitudes)
             dominant_freq = xf[dominant_idx]
 
-            print(f"{dominant_freq:.2f}")
+            # print(f"{dominant_freq:.2f}")
             sys.stdout.flush()
 
-            logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
+            # logger.info(f"Dominant Frequency found: {dominant_freq:.2f} Hz (Peak Magnitude: {magnitudes[dominant_idx]:.2f})")
             
             # Send the results obtained via WebSocket to API Gateway
 
@@ -63,13 +63,24 @@ class VibrationAnalyzer:
             response = EventDataResponse(
                 sensor_id=self.sensor_id,
                 timestamp=event_time,
-                category_event="", # TODO: Update this based on your own condition/logic
+                category_event=categorize_event(dominant_freq),
                 dominant_frequency=float(dominant_freq)
             )
 
-            print(response.model_dump_json())
+            if response.category_event != "":
+                print(response.model_dump_json())
 
             await manager.broadcast(response.model_dump_json())
             
         except Exception as e:
             logger.error(f"Error computing FFT: {e}")
+
+def categorize_event(dominant_frequency):
+    if dominant_frequency < 0.5:
+        return ""
+    elif dominant_frequency < 3.0:
+        return "earthquake"
+    elif dominant_frequency < 5.0:
+        return "conventional_explosion"
+    else:
+        return "nuclear_like"

@@ -6,6 +6,7 @@ import signal
 import httpx
 from httpx_sse import aconnect_sse
 from app.core.config import settings
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,14 @@ async def shutdown_sse_task(uri: str):
                     async for sse in event_source.aiter_sse():
                         try:
                             data = json.loads(sse.data)
-                            content = data.get("content")
 
-                            if content == "SHUTDOWN":
+                            command = data.get("command")
+                            if command == "SHUTDOWN":
                                 logger.warning("SHUTDOWN command received!")
-                                os.kill(os.getpid(), signal.SIGTERM)
+                                os._exit(1)
+                                # os.kill(os.getpid(), signal.SIGKILL)
 
-                        except json.JSONDecodeError:
+                        except json.JSONDecodeError as e:
                             logger.error(f"Failed to parse JSON: {sse.data}")
                         except Exception as e:
                             logger.error(f"Error processing SSE message: {e}")
