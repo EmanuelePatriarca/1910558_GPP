@@ -1,5 +1,9 @@
 import { Sensor, SensorCategoryEnum } from '../models/sensor.model';
 
+/** 
+ * Anagrafica statica dei sensori della rete di monitoraggio sismico.
+ * Include 7 sensori distribuiti globalmente (Field) e 5 sensori locali al Datacenter.
+ */
 export const STATIC_SENSORS: Sensor[] = [
   {
     id: "sensor-01",

@@ -21,24 +21,28 @@ export class SensorInfoPanelComponent {
 
   private sanitizer = inject(DomSanitizer);
 
-  // ── Derived ──────────────────────────────────────────────────────────────
+  // ── DERIVATI (Computed) ──────────────────────────────────────────────────
 
-  /** Merge historical + live events for this sensor, oldest first, limit to 20 total for chart */
+  /** 
+   * Unisce gli eventi storici e quelli in tempo reale per questo sensore.
+   * Filtra i duplicati e mantiene solo le ultime 20 letture per il grafico.
+   */
   sensorEvents = computed(() => {
     const id = this.sensor().id;
     const historical = this.events().filter(e => e.sensor_id === id);
     const live = this.liveEvents().filter(e => e.sensor_id === id);
-    // Deduplicate by id if present, live events take precedence
+    
+    // Deduplica tramite ID (gli eventi live hanno la precedenza)
     const liveIds = new Set(live.map(e => e.id).filter(Boolean));
     const merged = [...live, ...historical.filter(e => !e.id || !liveIds.has(e.id))];
     
-    // Sort and keep only the latest 20 for the chart
     return merged
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Newest first for slicing
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) 
       .slice(0, 20)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // Oldest first for chart x-axis
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); 
   });
 
+  /** Genera l'URL per l'embed della mappa OpenStreetMap centrata sulle coordinate del sensore */
   mapSrc = computed<SafeResourceUrl>(() => {
     const { latitude: lat, longitude: lon } = this.sensor().coordinates;
     const delta = 0.15;
@@ -58,7 +62,7 @@ export class SensorInfoPanelComponent {
     });
     const yData  = evs.map(e => e.dominant_frequency);
     
-    // Internal frequency-based classification for the chart only
+    // Classificazione interna basata sulla frequenza per la colorazione dinamica del grafico
     const getChartIndicator = (f: number) => {
       if (f >= 8)   return { color: '#ef4444', label: 'Nuclear-like Event' };
       if (f >= 3)   return { color: '#f97316', label: 'Conventional Explosion' };

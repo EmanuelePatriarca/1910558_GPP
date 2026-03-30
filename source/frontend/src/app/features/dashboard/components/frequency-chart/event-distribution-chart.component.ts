@@ -21,12 +21,12 @@ export class EventDistributionChartComponent {
     const sList = this.sensors();
     const eList = this.events();
     
-    // Labels Truncate Asse X
+    // Tronca i nomi dei sensori sull'asse X per migliorare la leggibilità
     const xData = sList.map(s => s.name.length > 12 ? s.name.substring(0, 10) + '...' : s.name);
     
-    // Elaborazione Aggregativa ECharts
+    // Elaborazione e aggregazione dei dati per le barre del grafico
     const seriesData = sList.map(s => {
-      // Ottieni tutti gli eventi che matchano questo sensore
+      // Filtra gli eventi appartenenti a questo sensore
       const sensorEvents = eList.filter(e => e.sensor_id === s.id);
       
       const total = sensorEvents.length;
@@ -34,13 +34,13 @@ export class EventDistributionChartComponent {
       const explosions = sensorEvents.filter(e => e.category_event === SensorEventRequestEnum.CONVENTIONAL_EXPLOSION).length;
       const nuclear = sensorEvents.filter(e => e.category_event === SensorEventRequestEnum.NUCLEAR_LIKE).length;
       
-      // Colore uniforme per tutte le barre come da richiesta
-      const color = '#6366f1'; // indigo-500 (colore primario del tema App)
+      // Colore indigo per coerenza con il tema dell'applicazione
+      const color = '#6366f1'; 
 
       return {
         value: total,
         itemStyle: { color },
-        // Custom Data Envelope per il Tooltip
+        // Metadati personalizzati passati al tooltip per il dettaglio degli eventi
         customPayload: { earthquakes, explosions, nuclear, name: s.name }
       };
     });

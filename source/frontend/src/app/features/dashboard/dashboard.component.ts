@@ -18,20 +18,22 @@ import { SensorInfoPanelComponent } from './components/sensor-info-panel/sensor-
 })
 export class DashboardComponent implements OnInit {
 
+  // Stato locale per la selezione visiva sulla mappa/lista
   selectedSensorId   = 'All';
   pickerResetKey     = 0;
-  /** Sensor currently shown in the info panel (null = panel closed) */
+  
+  // Sensore attualmente visualizzato nel pannello informativo laterale (null = pannello chiuso)
   selectedInfoSensor: SensorDashboardState | null = null;
 
-  // Iniezione dello State Manager reattivo globale
+  // Iniezione dello Store reattivo per la gestione dello stato globale
   public store = inject(DashboardStore);
 
   ngOnInit() {
-    this.store.loadInitialData(); // Trigger SSE / REST startup
+    // Avvio del caricamento dati (WebSocket e storico REST)
+    this.store.loadInitialData(); 
   }
 
-  // --- Helpers Puramente Visivi per Map Enum -> CSS --- //
-
+  /** Determina lo stile visivo (colori e bordi) di un sensore in base all'ultimo evento rilevato */
   getSensorColorTheme(sensor?: SensorDashboardState): string {
     let sensorColorClasses = '';
     switch(sensor?.lastEvent?.category_event) {
@@ -62,6 +64,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /** Traduce l'enum dell'evento in una descrizione testuale leggibile */
   getEventLabel(event?: SensorEventRequestEnum): string {
     switch(event) {
       case SensorEventRequestEnum.EARTHQUAKE: return 'Earthquake';
@@ -97,11 +100,14 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /** 
+   * Esporta la cronologia filtrata degli eventi in un file Excel professionale.
+   */
   exportToExcel() {
     const events = this.store.filteredHistory();
     if (!events || events.length === 0) return;
 
-    // 1. Map to Flat Objects
+    // 1. Mappatura dei dati in un formato piatto per Excel
     const data = events.map(ev => {
       const sensor = this.store.getSensorRef(ev.sensor_id);
       return {
@@ -114,23 +120,22 @@ export class DashboardComponent implements OnInit {
       };
     });
 
-    // 2. Generate Sheet
+    // 2. Creazione del foglio di lavoro e impostazione larghezza colonne
     const ws = XLSX.utils.json_to_sheet(data);
     
-    // Auto-adjust column widths
     ws['!cols'] = [
-      { wch: 20 }, // Sensor
-      { wch: 15 }, // Category
-      { wch: 25 }, // Event
-      { wch: 20 }, // Region
-      { wch: 15 }, // Frequency
-      { wch: 25 }  // DateTime
+      { wch: 20 }, // Sensore
+      { wch: 15 }, // Categoria
+      { wch: 25 }, // Tipo Evento
+      { wch: 20 }, // Regione
+      { wch: 15 }, // Frequenza
+      { wch: 25 }  // Data Ora
     ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Event History');
 
-    // 3. Filename Date String
+    // 3. Generazione del nome file con timestamp
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const d = pad(now.getDate());
@@ -139,9 +144,9 @@ export class DashboardComponent implements OnInit {
     const h = pad(now.getHours());
     const min = pad(now.getMinutes());
     const s = pad(now.getSeconds());
-    const filename = `event_report_at_${d}_${m}_${y}_${h}${min}${s}.xlsx`;
+    const filename = `report_eventi_${d}_${m}_${y}_${h}${min}${s}.xlsx`;
 
-    // 4. Trigger Download
+    // 4. Download del file
     XLSX.writeFile(wb, filename);
   }
 }

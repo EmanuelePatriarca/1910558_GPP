@@ -36,22 +36,23 @@ export interface CalendarDay {
 })
 export class DateRangePickerComponent {
 
-  /** Emits the selected range (with time) when Apply is clicked */
+  /** Emesso quando l'utente conferma il raggio temporale selezionato */
   rangeChange = output<DateRange>();
-  /** Increment this from the parent to programmatically reset the picker */
+  
+  /** Input per resettare il componente dall'esterno (usato dal parent) */
   resetKey = input<number>(0);
 
-  // ── Internal State ──────────────────────────────────────────────────────────
+  // ── STATO INTERNO ──────────────────────────────────────────────────────────
   isOpen = signal(false);
 
-  /** Calendar cursor: first day of displayed month */
+  /** Cursore del calendario: primo giorno del mese visualizzato */
   private cursor = signal(this.startOfMonth(new Date()));
 
-  /** Selected date (only date part; time comes from the spinners) */
+  /** Selezione della data (parte solo data; l'ora viene dai selettori dedicati) */
   rangeFrom = signal<Date | null>(null);
   rangeTo   = signal<Date | null>(null);
 
-  /** Time spinners – default 00:00:00 for start, 23:59:59 for end */
+  /** Selettori orari – Default: 00:00:00 per l'inizio, 23:59:59 per la fine */
   fromHour   = signal(0);
   fromMinute = signal(0);
   fromSecond = signal(0);
@@ -108,6 +109,7 @@ export class DateRangePickerComponent {
     return '';
   });
 
+  /** Genera la matrice dei giorni per la visualizzazione 6x7 del calendario */
   calendarDays = computed((): CalendarDay[] => {
     const cursor      = this.cursor();
     const today       = this.startOfDay(new Date());
@@ -121,18 +123,18 @@ export class DateRangePickerComponent {
     const startPad = firstDay.getDay();
     const days: CalendarDay[] = [];
 
-    // Previous month padding
+    // Padding mesi precedenti
     for (let i = startPad - 1; i >= 0; i--) {
       const d = new Date(firstDay);
       d.setDate(d.getDate() - i - 1);
       days.push(this.buildDay(d, false, today, from, effectiveTo));
     }
-    // Current month
+    // Mese corrente
     for (let d = new Date(firstDay); d <= lastDay; ) {
       days.push(this.buildDay(new Date(d), true, today, from, effectiveTo));
       d.setDate(d.getDate() + 1);
     }
-    // Fill last row to complete the 6×7 grid
+    // Padding mesi successivi per completare la griglia
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const d = new Date(lastDay);
@@ -162,17 +164,18 @@ export class DateRangePickerComponent {
     });
   }
 
+  /** Gestisce il click su un giorno: selezione inizio raggio o fine raggio */
   onDayClick(day: CalendarDay) {
     if (day.isDisabled) return;
     const clicked = this.startOfDay(day.date);
     const from    = this.rangeFrom();
 
     if (!from || (from && this.rangeTo())) {
-      // Start a new selection
+      // Nuova selezione
       this.rangeFrom.set(clicked);
       this.rangeTo.set(null);
     } else {
-      // Set the end; swap if needed
+      // Imposta la fine; inverte se cliccata una data precedente all'inizio
       if (clicked < from) {
         this.rangeTo.set(from);
         this.rangeFrom.set(clicked);

@@ -11,8 +11,12 @@ export type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED';
 })
 export class SeismicEventService {
   private readonly apiUrl = '/api/v1';
-  private readonly RECONNECT_INTERVAL = 100;  // 100ms base
-  private readonly HANDSHAKE_TIMEOUT = 1000;  // 1000ms (Balanced speed/reliability)
+  
+  // Intervallo base per i tentativi di riconnessione
+  private readonly RECONNECT_INTERVAL = 100;
+  
+  // Tempo massimo per l'handshake. Se superato, forziamo il failover su un'altra replica.
+  private readonly HANDSHAKE_TIMEOUT = 1000;
 
   private statusSubject = new BehaviorSubject<ConnectionStatus>('CLOSED');
   /** Public stream to monitor the connection health */
@@ -26,7 +30,8 @@ export class SeismicEventService {
   }
 
   /**
-   * Opens an "immortal" high-speed WebSocket that handles reconnection for any closure type.
+   * Apre un WebSocket "immortale" ad alta velocità.
+   * Gestisce automaticamente il failover e la riconnessione trasparente.
    */
   connectWebSocket(): Observable<Event> {
     return new Observable<Event>(observer => {
@@ -41,11 +46,10 @@ export class SeismicEventService {
         this.statusSubject.next('CONNECTING');
         socket = new WebSocket(wsUrl);
 
-        // Force failover if Nginx keeps us in CONNECTING state for a dead replica
+        // Meccanismo di sicurezza: se l'handshake impiega troppo tempo, forziamo la chiusura
+        // del socket per innescare immediatamente il failover verso una replica sana.
         handshakeTimeoutRef = setTimeout(() => {
            if (socket.readyState === WebSocket.CONNECTING) {
-              console.warn('WS Handshake taking too long (>500ms). Forcing failover...');
-              // Clear current handlers to prevent redundant triggers
               socket.onclose = null;
               socket.onerror = null;
               socket.onopen = null;
@@ -105,21 +109,17 @@ export class SeismicEventService {
         }
       };
     }).pipe(
-      // Aggressive Reconnection Strategy for Errors/Dirty Closes
+      // Strategia di riconnessione aggressiva in caso di errore o chiusura sporca (failover)
       retry({
         delay: (err, count) => {
-          // Zero delay for the first two attempts to catch transient flickers instantly
+          // Zero delay per i primi due tentativi per assorbire istantaneamente i glitch di rete
           const delayTime = count <= 2 ? 0 : Math.min(this.RECONNECT_INTERVAL * Math.pow(1.1, count - 2), 3000);
-          console.log(`WS Reconnecting in ${delayTime.toFixed(0)}ms... (Attempt ${count})`);
           return timer(delayTime);
         }
       }),
-      // Handle Clean Closes (repeat the observable)
+      // Gestione delle chiusure pulite: ripetiamo lo stream indefinitamente
       repeat({
-        delay: () => {
-          console.log('WS Repeating stream after clean close...');
-          return timer(this.RECONNECT_INTERVAL);
-        }
+        delay: () => timer(this.RECONNECT_INTERVAL)
       })
     );
   }
