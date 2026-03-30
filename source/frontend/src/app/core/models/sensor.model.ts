@@ -31,6 +31,7 @@ export interface Sensor {
 export interface Event {
   id?: string;
   sensor_id: string;
+  event_id?: number;
   // Se undefined, l'evento è considerato grezzo (uncategorized)
   category_event?: SensorEventRequestEnum;  
   dominant_frequency: number;

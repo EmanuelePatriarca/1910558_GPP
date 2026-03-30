@@ -151,11 +151,9 @@ export class DashboardStore implements OnDestroy {
    * Genera un ID esadecimale deterministico basato sui dati dell'evento.
    * Questo garantisce che lo stesso evento abbia lo stesso ID indipendentemente dalla sorgente (REST o WS).
    */
-  private generateEventId(e: any): string {
-    const ts = e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
-    
-    // Stringa sorgente per l'hash: sensore + millisecondi + categoria
-    const rawStr = `${e.sensor_id}_${ts}_${e.category_event || 'raw'}`;
+  private generateInternalEventId(e: any): string {
+    // Stringa sorgente per l'hash: sensore + event_id + categoria
+    const rawStr = `${e.sensor_id}_${e.event_id}_${e.category_event || 'raw'}`;
     
     // Algoritmo DJB2 (Veloce e deterministico)
     let hash = 5381;
@@ -192,7 +190,7 @@ export class DashboardStore implements OnDestroy {
   }
 
   /**
-   * Recupera lo snapshot più recente degli eventi dal server.
+   * Recupera lo snapshot più recente degli eventi dal server e sincronizza gli alert persi.
    */
   public refreshHistory() {
     if (this.historicalEvents().length === 0) {
@@ -207,10 +205,42 @@ export class DashboardStore implements OnDestroy {
           return { 
             ...e, 
             timestamp,
-            // Assegnazione ID deterministico se mancante
-            id: e.id ?? this.generateEventId({ ...e, timestamp })
+            // ID deterministico
+            id: e.id ?? this.generateInternalEventId(e)
           };
         });
+
+        // 1. Identificazione eventi "persi" (nuovi alert critici)
+        const currentEventIds = new Set(this.historicalEvents().map(e => e.id));
+        const newAlerts: AppAlert[] = [];
+        parsed.forEach(ev => {
+          // Se l'evento ha una categoria (è un alert) e non è tra gli ID noti
+          if (ev.category_event && !currentEventIds.has(ev.id)) {
+            const sensor = this.sensorsBase().find(s => s.id === ev.sensor_id);
+            newAlerts.push({
+              id: ev.id,
+              event: ev,
+              sensorName: sensor?.name || 'Unknown Sensor',
+              isRead: false,
+              receivedAt: new Date()
+            });
+          }
+        });
+
+        // 2. Notifica silenziosa per gli alert di recupero
+        if (newAlerts.length > 0) {
+           // Ordiniamo gli alert dal più vecchio al più recente per l'inserimento
+           // ma AppComponent vedrà sempre l'ultimo in lista (il più recente) per il toast
+           newAlerts.sort((a,b) => a.event.timestamp.getTime() - b.event.timestamp.getTime());
+           
+           this.alertsHistory.update(current => {
+              const updated = [...newAlerts.reverse(), ...current];
+              return updated.slice(0, 10); // Manteniamo solo gli ultimi 10 alert storici
+           });
+           console.log(`Alert Recovery: Syncing ${newAlerts.length} missed events.`);
+        }
+
+        // 3. Aggiornamento storico visibile
         this.historicalEvents.set(parsed);
         this.isLoading.set(false);
       },
@@ -238,7 +268,7 @@ export class DashboardStore implements OnDestroy {
         const parsed: Event = { 
           ...event, 
           timestamp,
-          id: event.id ?? this.generateEventId({ ...event, timestamp })
+          id: event.id ?? this.generateInternalEventId(event)
         };
 
         // Mantieni solo le ultime 20 letture per sensore per il grafico live
