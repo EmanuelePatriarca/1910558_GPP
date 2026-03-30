@@ -151,11 +151,9 @@ export class DashboardStore implements OnDestroy {
    * Genera un ID esadecimale deterministico basato sui dati dell'evento.
    * Questo garantisce che lo stesso evento abbia lo stesso ID indipendentemente dalla sorgente (REST o WS).
    */
-  private generateEventId(e: any): string {
-    const ts = e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
-    
-    // Stringa sorgente per l'hash: sensore + millisecondi + categoria
-    const rawStr = `${e.sensor_id}_${ts}_${e.category_event || 'raw'}`;
+  private generateInternalEventId(e: any): string {
+    // Stringa sorgente per l'hash: sensore + event_id + categoria
+    const rawStr = `${e.sensor_id}_${e.event_id}_${e.category_event || 'raw'}`;
     
     // Algoritmo DJB2 (Veloce e deterministico)
     let hash = 5381;
@@ -200,8 +198,6 @@ export class DashboardStore implements OnDestroy {
     }
     this.loadError.set(null);
 
-    const currentEventIds = new Set(this.historicalEvents().map(e => e.id));
-
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
         const parsed = events.map(e => {
@@ -210,11 +206,12 @@ export class DashboardStore implements OnDestroy {
             ...e, 
             timestamp,
             // ID deterministico
-            id: e.id ?? this.generateEventId({ ...e, timestamp })
+            id: e.id ?? this.generateInternalEventId(e)
           };
         });
 
         // 1. Identificazione eventi "persi" (nuovi alert critici)
+        const currentEventIds = new Set(this.historicalEvents().map(e => e.id));
         const newAlerts: AppAlert[] = [];
         parsed.forEach(ev => {
           // Se l'evento ha una categoria (è un alert) e non è tra gli ID noti
@@ -271,7 +268,7 @@ export class DashboardStore implements OnDestroy {
         const parsed: Event = { 
           ...event, 
           timestamp,
-          id: event.id ?? this.generateEventId({ ...event, timestamp })
+          id: event.id ?? this.generateInternalEventId(event)
         };
 
         // Mantieni solo le ultime 20 letture per sensore per il grafico live
