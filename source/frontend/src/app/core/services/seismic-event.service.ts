@@ -11,12 +11,6 @@ export type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED';
 })
 export class SeismicEventService {
   private readonly apiUrl = '/api/v1';
-  
-  // Intervallo base per i tentativi di riconnessione
-  private readonly RECONNECT_INTERVAL = 100;
-  
-  // Tempo massimo per l'handshake. Se superato, forziamo il failover su un'altra replica.
-  private readonly HANDSHAKE_TIMEOUT = 1000;
 
   private statusSubject = new BehaviorSubject<ConnectionStatus>('CLOSED');
   /** Public stream to monitor the connection health */

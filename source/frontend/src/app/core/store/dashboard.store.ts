@@ -149,7 +149,7 @@ export class DashboardStore implements OnDestroy {
 
   /**
    * Genera un ID esadecimale deterministico basato sui dati dell'evento.
-   * Questo garantisce che lo stesso evento abbia lo stesso ID indipendentemente dalla sorgente (REST o WS).
+   * Questo garantisce che lo stesso evento abbia lo stesso ID indipendentemente dalla sorgente (REST o SSE).
    */
   private generateInternalEventId(e: any): string {
     // Stringa sorgente per l'hash: sensore + event_id + categoria
@@ -172,7 +172,7 @@ export class DashboardStore implements OnDestroy {
     // 1. Carica l'anagrafica sensori statica
     this.sensorsBase.set(STATIC_SENSORS);
     
-    // 2. Monitora la connessione: ricarica lo storico REST ad ogni riconnessione WebSocket
+    // 2. Monitora la connessione: ricarica lo storico REST ad ogni riconnessione SSE
     this.seismicService.status$.subscribe(status => {
       this.connectionStatus.set(status);
       if (status !== 'OPEN') {
@@ -182,7 +182,7 @@ export class DashboardStore implements OnDestroy {
       }
     });
 
-    // 3. Avvia lo stream WebSocket
+    // 3. Avvia lo stream SSE
     this.connectLiveStream();
 
     // 4. Primo caricamento dello storico

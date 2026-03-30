@@ -29,7 +29,7 @@ export class DashboardComponent implements OnInit {
   public store = inject(DashboardStore);
 
   ngOnInit() {
-    // Avvio del caricamento dati (WebSocket e storico REST)
+    // Avvio del caricamento dati (SSE e storico REST)
     this.store.loadInitialData(); 
   }
 
