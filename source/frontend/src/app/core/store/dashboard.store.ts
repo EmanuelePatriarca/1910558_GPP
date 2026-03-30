@@ -223,6 +223,13 @@ export class DashboardStore implements OnDestroy {
     });
   }
 
+  /**
+   * Forza manualmente la riconnessione dello stream SSE.
+   */
+  public reconnect() {
+    this.connectLiveStream();
+  }
+
   private connectLiveStream() {
     this.liveSub?.unsubscribe();
     this.liveSub = this.seismicService.connectStream().subscribe({
