@@ -96,6 +96,7 @@ class VibrationAnalyzer:
                         event_id = self.ids_last_events_detected[response.category_event] + 1
                         self.ids_last_events_detected[response.category_event] = event_id
 
+                        # event_id received also by gateway to maintain consistency between history in DB and data sent to frontend
                         response.event_id = event_id
 
                         await save_event(event_id, response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
