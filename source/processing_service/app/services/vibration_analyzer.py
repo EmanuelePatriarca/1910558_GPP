@@ -62,6 +62,7 @@ class VibrationAnalyzer:
             event_time = datetime.fromtimestamp(self.timestamps[-1], tz=timezone.utc).isoformat()
             
             response = EventDataResponse(
+                event_id = 0,
                 sensor_id=self.sensor_id,
                 timestamp=event_time,
                 category_event=categorize_event(dominant_freq),
@@ -94,6 +95,9 @@ class VibrationAnalyzer:
 
                         event_id = self.ids_last_events_detected[response.category_event] + 1
                         self.ids_last_events_detected[response.category_event] = event_id
+
+                        # event_id received also by gateway to maintain consistency between history in DB and data sent to frontend
+                        response.event_id = event_id
 
                         await save_event(event_id, response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
                         await events_sse_manager.broadcast(response.model_dump_json())
