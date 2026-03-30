@@ -38,12 +38,14 @@ async def save_event(sensor_id: str, event_timestamp: str, category_event: str, 
         time_bucket = get_time_bucket(parsed_timestamp, 2)
 
         query = """
-            INSERT INTO seismic_events (sensor_id, parsed_timestamp, category_event, dominant_frequency, time_bucket)
+            INSERT INTO seismic_events (sensor_id, timestamp, category_event, dominant_frequency, time_bucket)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (sensor_id, time_bucket, category_event) DO NOTHING;
+            ON CONFLICT DO NOTHING;
         """
+        commit = "COMMIT;"
 
         result = await conn.execute(query, sensor_id, parsed_timestamp, category_event, dominant_frequency, time_bucket)
+        await conn.execute(commit)
 
         if result == "INSERT 0 1":
             print(f"NEW EVENT SAVED: {category_event} on {sensor_id}")
