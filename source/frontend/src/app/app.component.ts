@@ -17,16 +17,19 @@ export class AppComponent {
   activeToasts = signal<AppAlert[]>([]);
 
   private lastAlertId: string | null = null;
+  private toastTimeout: any;
 
   constructor() {
+    // Effetto reattivo per monitorare la cronologia degli alert nello store
     effect(() => {
       const alerts = this.store.alertsHistory();
       if (alerts.length > 0) {
         const latestAlert = alerts[0];
+        
+        // Se l'alert è nuovo e non letto, lo mostriamo come pop-up
         if (this.lastAlertId !== latestAlert.id) {
           this.lastAlertId = latestAlert.id;
           
-          // Spawn toast only if it's unread / very brand new
           if (!latestAlert.isRead) {
             this.spawnToast(latestAlert);
           }
@@ -46,15 +49,30 @@ export class AppComponent {
     this.isNotificationMenuOpen.set(false);
   }
 
+  /**
+   * Mostra una notifica a scomparsa (toast).
+   * Funzionamento esclusivo: l'ultima notifica sostituisce sempre la precedente.
+   */
   spawnToast(alert: AppAlert) {
-    this.activeToasts.update(t => [...t, alert]);
-    setTimeout(() => {
-      this.activeToasts.update(t => t.filter(x => x.id !== alert.id));
+    this.activeToasts.set([alert]);
+
+    // Resetta il timer di auto-chiusura (5 secondi)
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    this.toastTimeout = setTimeout(() => {
+      this.activeToasts.set([]);
+      this.toastTimeout = null;
     }, 5000);
   }
 
   dismissToast(id: string) {
-    this.activeToasts.update(t => t.filter(x => x.id !== id));
+    this.activeToasts.set([]);
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+      this.toastTimeout = null;
+    }
   }
 
   getAlertColorClass(category: string | undefined): string {

@@ -11,8 +11,12 @@ export type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED';
 })
 export class SeismicEventService {
   private readonly apiUrl = '/api/v1';
-  private readonly RECONNECT_INTERVAL = 1000; // Base interval (1S)
-  private readonly HANDSHAKE_TIMEOUT = 2000;  // 2S timeout to force new handshake if Nginx sticks to a dead IP
+  
+  // Intervallo base per i tentativi di riconnessione
+  private readonly RECONNECT_INTERVAL = 100;
+  
+  // Tempo massimo per l'handshake. Se superato, forziamo il failover su un'altra replica.
+  private readonly HANDSHAKE_TIMEOUT = 1000;
 
   private statusSubject = new BehaviorSubject<ConnectionStatus>('CLOSED');
   /** Public stream to monitor the connection health */
@@ -26,23 +30,32 @@ export class SeismicEventService {
   }
 
   /**
-   * Opens an "immortal" high-speed WebSocket that handles reconnection for any closure type.
+   * Apre un WebSocket "immortale" ad alta velocità.
+   * Gestisce automaticamente il failover e la riconnessione trasparente.
    */
   connectWebSocket(): Observable<Event> {
     return new Observable<Event>(observer => {
       const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/v1/events/ws`;
       let socket: WebSocket;
       let handshakeTimeoutRef: any;
+      let isClosed = false;
 
       const createSocket = () => {
+        if (isClosed) return;
+        
         this.statusSubject.next('CONNECTING');
         socket = new WebSocket(wsUrl);
 
-        // Force failover if Nginx keeps us in CONNECTING state for a dead replica
+        // Meccanismo di sicurezza: se l'handshake impiega troppo tempo, forziamo la chiusura
+        // del socket per innescare immediatamente il failover verso una replica sana.
         handshakeTimeoutRef = setTimeout(() => {
            if (socket.readyState === WebSocket.CONNECTING) {
-              console.warn('WS Handshake taking too long (>2s). Forcing failover...');
-              socket.close(); // Triggers onclose -> error -> retry
+              socket.onclose = null;
+              socket.onerror = null;
+              socket.onopen = null;
+              socket.close();
+              this.statusSubject.next('CLOSED');
+              observer.error(new Error('Handshake timeout - forcing failover'));
            }
         }, this.HANDSHAKE_TIMEOUT);
 
@@ -66,6 +79,7 @@ export class SeismicEventService {
         };
 
         socket.onerror = (error) => {
+          // onerror is usually followed by onclose, but we log it for clarity
           console.error('WS Connection error:', error);
         };
 
@@ -74,8 +88,8 @@ export class SeismicEventService {
           this.statusSubject.next('CLOSED');
           
           if (!event.wasClean) {
-            console.warn(`WS Connection lost (code: ${event.code}). Retrying in 1s...`);
-            observer.error(new Error('Connection broken'));
+            console.warn(`WS Connection lost (code: ${event.code}). Retrying...`);
+            observer.error(new Error(`Connection broken (code: ${event.code})`));
           } else {
             console.warn('WS Connection closed gracefully by server. Repeating...');
             observer.complete(); // repeat() will handle this
@@ -86,19 +100,24 @@ export class SeismicEventService {
       createSocket();
 
       return () => {
+        isClosed = true;
+        clearTimeout(handshakeTimeoutRef);
         if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+          socket.onclose = null;
+          socket.onerror = null;
           socket.close();
         }
       };
     }).pipe(
-      // Aggressive Reconnection Strategy for Errors/Dirty Closes
+      // Strategia di riconnessione aggressiva in caso di errore o chiusura sporca (failover)
       retry({
         delay: (err, count) => {
-          const delayTime = Math.min(this.RECONNECT_INTERVAL * Math.pow(1.2, count), 10000);
+          // Zero delay per i primi due tentativi per assorbire istantaneamente i glitch di rete
+          const delayTime = count <= 2 ? 0 : Math.min(this.RECONNECT_INTERVAL * Math.pow(1.1, count - 2), 3000);
           return timer(delayTime);
         }
       }),
-      // Handle Clean Closes (repeat the observable)
+      // Gestione delle chiusure pulite: ripetiamo lo stream indefinitamente
       repeat({
         delay: () => timer(this.RECONNECT_INTERVAL)
       })

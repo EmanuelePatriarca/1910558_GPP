@@ -30,12 +30,13 @@ export class DashboardStore implements OnDestroy {
   private seismicService = inject(SeismicEventService);
   private liveSub?: Subscription;
 
-  // -- STATE SIGNALS -- //
+  // -- STATO (Signals) -- //
   private sensorsBase = signal<Sensor[]>([]);
   public historicalEvents = signal<Event[]>([]);
   public alertsHistory = signal<AppAlert[]>([]);
   public historySortOrder = signal<'desc' | 'asc'>('desc');
-  /** All raw WS events (including uncategorized) — used by the live frequency chart */
+  
+  // Lista di tutti gli eventi grezzi (anche non categorizzati) per il grafico real-time
   public liveFrequencyEvents = signal<Event[]>([]);
 
   public filters = signal<DashboardFilters>({
@@ -146,35 +147,77 @@ export class DashboardStore implements OnDestroy {
     this.filters.set({ eventType: 'All', category: 'All', timeRange: 'All', sensorId: 'All', dateFrom: null, dateTo: null });
   }
 
+  /**
+   * Genera un ID esadecimale deterministico basato sui dati dell'evento.
+   * Questo garantisce che lo stesso evento abbia lo stesso ID indipendentemente dalla sorgente (REST o WS).
+   */
+  private generateEventId(e: any): string {
+    const ts = e.timestamp instanceof Date ? e.timestamp.getTime() : new Date(e.timestamp).getTime();
+    
+    // Stringa sorgente per l'hash: sensore + millisecondi + categoria
+    const rawStr = `${e.sensor_id}_${ts}_${e.category_event || 'raw'}`;
+    
+    // Algoritmo DJB2 (Veloce e deterministico)
+    let hash = 5381;
+    for (let i = 0; i < rawStr.length; i++) {
+        hash = (hash * 33) ^ rawStr.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(16).toUpperCase();
+  }
+
   // -- DATA FETCHING & SYNC -- //
+  // -- CARICAMENTO E SINCRONIZZAZIONE -- //
   loadInitialData() {
     this.isLoading.set(true);
     this.loadError.set(null);
 
-    // 1. Load static sensor registry immediately
+    // 1. Carica l'anagrafica sensori statica
     this.sensorsBase.set(STATIC_SENSORS);
     
-    // 2. Track connection health
+    // 2. Monitora la connessione: ricarica lo storico REST ad ogni riconnessione WebSocket
     this.seismicService.status$.subscribe(status => {
       this.connectionStatus.set(status);
       if (status !== 'OPEN') {
         this.isLive.set(false);
+      } else {
+        this.refreshHistory();
       }
     });
 
-    // 3. Open WebSocket immediately — independent of REST call
+    // 3. Avvia lo stream WebSocket
     this.connectLiveStream();
 
-    // 4. Fetch historical event data from backend (parallel)
+    // 4. Primo caricamento dello storico
+    this.refreshHistory();
+  }
+
+  /**
+   * Recupera lo snapshot più recente degli eventi dal server.
+   */
+  public refreshHistory() {
+    if (this.historicalEvents().length === 0) {
+      this.isLoading.set(true);
+    }
+    this.loadError.set(null);
+
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
-        const parsed = events.map(e => ({ ...e, timestamp: new Date(e.timestamp) }));
+        const parsed = events.map(e => {
+          const timestamp = new Date(e.timestamp);
+          return { 
+            ...e, 
+            timestamp,
+            // Assegnazione ID deterministico se mancante
+            id: e.id ?? this.generateEventId({ ...e, timestamp })
+          };
+        });
         this.historicalEvents.set(parsed);
         this.isLoading.set(false);
       },
       error: (err) => {
-        console.error('Failed to load historical events:', err);
-        this.loadError.set('Could not load event history from server.');
+        if (this.historicalEvents().length === 0) {
+          this.loadError.set('Could not load event history from server.');
+        }
         this.isLoading.set(false);
       }
     });
@@ -184,29 +227,39 @@ export class DashboardStore implements OnDestroy {
     this.liveSub?.unsubscribe();
     this.liveSub = this.seismicService.connectWebSocket().subscribe({
       next: (event: Event) => {
-        const parsed = { ...event, timestamp: new Date(event.timestamp) };
+        const timestamp = new Date(event.timestamp);
+        const parsed: Event = { 
+          ...event, 
+          timestamp,
+          id: event.id ?? this.generateEventId({ ...event, timestamp })
+        };
 
-        // Keep only last 20 readings per sensor for the live chart
+        // Mantieni solo le ultime 20 letture per sensore per il grafico live
         this.liveFrequencyEvents.update(evs => {
           const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
           const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
           return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
         });
 
-        // Only categorized events update history & trigger alerts
+        // Solo gli eventi categorizzati aggiornano lo storico e attivano i pop-up
         if (parsed.category_event) {
-          this.historicalEvents.update(evs => [parsed, ...evs]);
-          const sensorName = this.getSensorRef(event.sensor_id)?.name ?? event.sensor_id;
-          this.pushAlert(parsed, sensorName);
+          // Utilizziamo l'ID deterministico per evitare duplicati durante i refresh
+          const isDuplicate = this.historicalEvents().some(e => e.id === parsed.id);
+          
+          if (!isDuplicate) {
+            this.historicalEvents.update(evs => [parsed, ...evs]);
+            const sensorName = this.getSensorRef(event.sensor_id)?.name ?? event.sensor_id;
+            this.pushAlert(parsed, sensorName);
+          }
         }
 
         this.isLive.set(true);
       },
       error: (err: unknown) => {
-        console.warn('WS Stream Error (Retrying...):', err);
+        this.isLive.set(false);
       },
       complete: () => {
-         console.warn('WS Stream Completed (Repeating...)');
+         this.isLive.set(false);
       }
     });
   }

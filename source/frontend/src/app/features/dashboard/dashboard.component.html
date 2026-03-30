@@ -1,6 +1,6 @@
 <div class="flex-1 min-h-0 w-full grid grid-cols-1 xl:grid-cols-[4.5fr_5.5fr] gap-2 xl:gap-3 relative">
 
-  <!-- Loading Overlay temporaneo -->
+  <!-- Overlay di Caricamento -->
   @if (store.isLoading()) {
     <div class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-xl">
        <div class="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -41,7 +41,7 @@
         </div>
       </div>
 
-        <!-- ── Datacenter Sensors ── -->
+        <!-- ── Sensori Datacenter ── -->
         <div class="flex flex-col gap-1.5 lg:gap-2 flex-[2] min-h-0">
           <div class="flex items-center gap-2 shrink-0">
             <h3 class="text-xs lg:text-sm uppercase text-slate-400 font-semibold tracking-widest shrink-0">Datacenter Sensors</h3>
@@ -85,7 +85,7 @@
   <!-- Right Column: History & Charts -->
   <section class="flex flex-col gap-2 h-full min-h-0">
     
-    <!-- History Grid Partial -->
+    <!-- Griglia Cronologia Eventi -->
     <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2 lg:p-2 shadow-xl flex flex-col min-h-0">
       <div class="flex justify-between items-center mb-4 lg:mb-6 shrink-0">
         <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Events History 
@@ -185,7 +185,7 @@
       </div>
     </div>
 
-    <!-- Charts Mockup partial view -->
+    <!-- Grafico Distribuzione Eventi -->
     <div class="shrink-0 h-[25%] lg:h-[35%] min-h-[200px] bg-slate-900 border border-slate-800 rounded-xl p-2 lg:p-2 shadow-xl flex flex-col">
       <h2 class="text-lg lg:text-xl font-bold font-sans text-slate-100 tracking-wide mb-2 shrink-0">Events Distribution</h2>
       <div class="flex-1 w-full min-h-0 mt-4 relative">
