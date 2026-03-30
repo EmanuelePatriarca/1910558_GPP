@@ -34,7 +34,6 @@ services:
       - backend_network
 
   postgres_db:
-    # INVECE di 'image:', usiamo 'build:' puntando alla nostra nuova cartella
     build: ./database
     container_name: seismic_db
     restart: always

@@ -20,29 +20,26 @@ async def connect_to_db():
         )
         return conn
     except Exception as e:
-        print(f"Critical DB connection error: {e}")
+        print(f"Error during connection to DB: {e}")
         return None
 
-async def save_seismic_event(conn, sensor_id: str, event_timestamp: str, category_event: str, dominant_frequency: float):
+async def save_event(sensor_id: str, event_timestamp: str, category_event: str, dominant_frequency: float):
 
-    if conn is None:
-        print("Cannot save: DB connection is missing.")
-        return
+    conn = await connect_to_db()
 
     try:
-
         parsed_timestamp = datetime.fromisoformat(event_timestamp.replace('Z', '+00:00'))
-        # SQL Query with conflict management
+
+        time_bucket = get_time_bucket(parsed_timestamp, 2)
+
         query = """
-            INSERT INTO seismic_events (sensor_id, timestamp, category_event, dominant_frequency)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (sensor_id, timestamp) DO NOTHING;
+            INSERT INTO seismic_events (sensor_id, timestamp, category_event, dominant_frequency, time_bucket)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (sensor_id, time_bucket, category_event) DO NOTHING;
         """
-        
-        # Execute the query passing the parameters
-        result = await conn.execute(query, sensor_id, parsed_timestamp, category_event, dominant_frequency)
-        
-        # Check the operation result to log accordingly
+
+        result = await conn.execute(query, sensor_id, parsed_timestamp, category_event, dominant_frequency, time_bucket)
+
         if result == "INSERT 0 1":
             print(f"NEW EVENT SAVED: {category_event} on {sensor_id}")
         else:
@@ -50,3 +47,17 @@ async def save_seismic_event(conn, sensor_id: str, event_timestamp: str, categor
 
     except Exception as e:
         print(f"Error during DB insertion: {e}")
+
+    finally:
+        await conn.close()
+
+def get_time_bucket(timestamp: datetime, window_seconds: int = 2) -> datetime:
+
+    total_seconds = timestamp.hour * 3600 + timestamp.minute * 60 + timestamp.second
+    bucketed_total_seconds = (total_seconds // window_seconds) * window_seconds
+
+    hours, remainder = divmod(bucketed_total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    # New timestamp truncated to the bucket start: 12:00:01.789 -> 12:00:00
+    return timestamp.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
