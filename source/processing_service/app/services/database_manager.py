@@ -1,6 +1,7 @@
 import asyncpg
 import os
 from datetime import datetime
+from app.schemas.event_data import EventDataResponse
 
 # Connection parameters (read from Docker environment variables or using defaults)
 DB_USER = os.getenv("POSTGRES_USER", "admin")
@@ -65,3 +66,32 @@ def get_time_bucket(timestamp: datetime, window_seconds: int = 2) -> datetime:
 
     # New timestamp truncated to the bucket start: 12:00:01.789 -> 12:00:00
     return timestamp.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
+async def get_seismic_history(conn) -> list[EventDataResponse]:
+
+    if conn is None:
+        print("Cannot fetch history: DB connection is missing.")
+        return []
+
+    try:
+        query = """
+            SELECT sensor_id, timestamp, category_event, dominant_frequency
+            FROM seismic_events
+            ORDER BY timestamp DESC;
+        """
+        rows = await conn.fetch(query)
+        
+        history = []
+        for row in rows:
+            event = EventDataResponse(
+                sensor_id=row["sensor_id"],
+                timestamp=row["timestamp"].isoformat(),
+                category_event=row["category_event"],
+                dominant_frequency=row["dominant_frequency"]
+            )
+            history.append(event)
+            
+        return history
+
+    except Exception as e:
+        print(f"Error during DB select: {e}")
+        return []
