@@ -7,6 +7,7 @@ services:
       replicas: 5
     depends_on:
       - broker
+      - postgres_db
     env_file:
       - ./processing_service/.env
     environment:
@@ -35,20 +36,17 @@ services:
 
   postgres_db:
     build: ./database
-    container_name: seismic_db
+    container_name: event_db
     restart: always
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: supersecret
-      POSTGRES_DB: seismic_data
+      POSTGRES_DB: event_data
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-volumes:
-  postgres_data:
-  
   gateway:
     build:
       context: ./gateway
@@ -68,6 +66,9 @@ volumes:
     depends_on:
       - broker
       - processing_service
+
+volumes:
+  postgres_data:
 
 networks:
   backend_network:

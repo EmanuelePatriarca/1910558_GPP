@@ -27,6 +27,10 @@ async def save_event(sensor_id: str, event_timestamp: str, category_event: str, 
 
     conn = await connect_to_db()
 
+    if conn is None:
+        print("Connection to DB failed. Event not saved.")
+        return
+
     try:
         parsed_timestamp = datetime.fromisoformat(event_timestamp.replace('Z', '+00:00'))
 
