@@ -7,8 +7,10 @@ services:
     deploy:
       replicas: 10
     depends_on:
-      - broker
-      - postgres_db
+      broker:
+        condition: service_started
+      postgres_db:
+        condition: service_healthy
     env_file:
       - ./processing_service/.env
     environment:
@@ -16,6 +18,13 @@ services:
       - SHUTDOWN_SSE_URI=http://simulator:8080/api/control
     networks:
       - backend_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://processing_service:8000/health')"]
+      interval: 24h
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 5s
 
   broker:
     build: ./custom_broker
@@ -41,6 +50,8 @@ services:
     container_name: event_db
     command: ["postgres", "-c", "log_min_messages=PANIC"]
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d event_data"]
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: supersecret
@@ -59,7 +70,6 @@ services:
       - "80:80"
     depends_on:
       - frontend
-      - processing_service
     networks:
       - backend_network
 
@@ -69,8 +79,8 @@ services:
     networks:
       - backend_network
     depends_on:
-      - broker
-      - processing_service
+      processing_service:
+        condition: service_healthy
 
 volumes:
   postgres_data:
