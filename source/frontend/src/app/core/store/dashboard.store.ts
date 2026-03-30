@@ -225,7 +225,7 @@ export class DashboardStore implements OnDestroy {
 
   private connectLiveStream() {
     this.liveSub?.unsubscribe();
-    this.liveSub = this.seismicService.connectWebSocket().subscribe({
+    this.liveSub = this.seismicService.connectStream().subscribe({
       next: (event: Event) => {
         const timestamp = new Date(event.timestamp);
         const parsed: Event = { 

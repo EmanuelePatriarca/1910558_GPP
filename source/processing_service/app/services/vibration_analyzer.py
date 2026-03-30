@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import logging
 from datetime import datetime, timezone
-from app.services.events_websocket import manager
+from app.services.sse_manager import sse_manager
 from app.schemas.event_data import EventDataResponse
 from app.services.database_manager import save_event
 
@@ -56,7 +56,7 @@ class VibrationAnalyzer:
             dominant_idx = np.argmax(magnitudes)
             dominant_freq = xf[dominant_idx]
 
-            # Send the results obtained via WebSocket to API Gateway
+            # Send the results obtained via SSE to API Gateway (US-11)
 
             event_time = datetime.fromtimestamp(self.timestamps[-1], tz=timezone.utc).isoformat()
             
@@ -92,16 +92,16 @@ class VibrationAnalyzer:
                         self.event_detected = response.category_event
 
                         await save_event(response.sensor_id, response.timestamp, response.category_event, response.dominant_frequency)
-                        await manager.broadcast(response.model_dump_json())
+                        await sse_manager.broadcast(response.model_dump_json())
 
                     else:
 
                         response.category_event = ""
-                        await manager.broadcast(response.model_dump_json())
+                        await sse_manager.broadcast(response.model_dump_json())
 
                 else:
 
-                    await manager.broadcast(response.model_dump_json())
+                    await sse_manager.broadcast(response.model_dump_json())
 
             except Exception as e:
                 logger.error(f"Error broadcasting event or saving event to DB: {e}")
