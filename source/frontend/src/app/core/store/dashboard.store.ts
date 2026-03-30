@@ -203,12 +203,10 @@ export class DashboardStore implements OnDestroy {
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
         const parsed = events.map(e => {
-          const timestamp = new Date(e.timestamp);
           return { 
-            ...e, 
-            timestamp,
+            ...e,
             // Assegnazione ID deterministico se mancante
-            id: e.id ?? this.generateEventId({ ...e, timestamp })
+            id: e.id ?? this.generateEventId(e)
           };
         });
         this.historicalEvents.set(parsed);
@@ -227,11 +225,9 @@ export class DashboardStore implements OnDestroy {
     this.liveSub?.unsubscribe();
     this.liveSub = this.seismicService.connectWebSocket().subscribe({
       next: (event: Event) => {
-        const timestamp = new Date(event.timestamp);
         const parsed: Event = { 
           ...event, 
-          timestamp,
-          id: event.id ?? this.generateEventId({ ...event, timestamp })
+          id: event.id ?? this.generateEventId(event)
         };
 
         // Mantieni solo le ultime 20 letture per sensore per il grafico live
