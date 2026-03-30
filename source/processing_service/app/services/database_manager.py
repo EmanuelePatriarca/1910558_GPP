@@ -1,6 +1,7 @@
 import asyncpg
 import os
 from datetime import datetime
+from app.schemas.event_data import EventDataResponse
 
 # Connection parameters (read from Docker environment variables or using defaults)
 DB_USER = os.getenv("POSTGRES_USER", "admin")
@@ -50,3 +51,33 @@ async def save_seismic_event(conn, sensor_id: str, event_timestamp: str, categor
 
     except Exception as e:
         print(f"Error during DB insertion: {e}")
+
+async def get_seismic_history(conn) -> list[EventDataResponse]:
+
+    if conn is None:
+        print("Cannot fetch history: DB connection is missing.")
+        return []
+
+    try:
+        query = """
+            SELECT sensor_id, timestamp, category_event, dominant_frequency
+            FROM seismic_events
+            ORDER BY timestamp DESC;
+        """
+        rows = await conn.fetch(query)
+        
+        history = []
+        for row in rows:
+            event = EventDataResponse(
+                sensor_id=row["sensor_id"],
+                timestamp=row["timestamp"].isoformat(),
+                category_event=row["category_event"],
+                dominant_frequency=row["dominant_frequency"]
+            )
+            history.append(event)
+            
+        return history
+
+    except Exception as e:
+        print(f"Error during DB select: {e}")
+        return []
