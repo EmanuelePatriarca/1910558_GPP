@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
-import { SeismicEventService } from '../services/seismic-event.service';
+import { SeismicEventService, ConnectionStatus } from '../services/seismic-event.service';
 import { SensorDashboardState, Event, Sensor, SensorCategoryEnum } from '../models/sensor.model';
 import { Subscription } from 'rxjs';
 import { STATIC_SENSORS } from '../constants/sensors.data';
@@ -49,6 +49,7 @@ export class DashboardStore implements OnDestroy {
 
   public isLoading = signal<boolean>(true);
   public isLive = signal<boolean>(false);
+  public connectionStatus = signal<ConnectionStatus>('CLOSED');
   public loadError = signal<string | null>(null);
 
   // -- COMPUTED SIGNALS -- //
@@ -152,11 +153,19 @@ export class DashboardStore implements OnDestroy {
 
     // 1. Load static sensor registry immediately
     this.sensorsBase.set(STATIC_SENSORS);
+    
+    // 2. Track connection health
+    this.seismicService.status$.subscribe(status => {
+      this.connectionStatus.set(status);
+      if (status !== 'OPEN') {
+        this.isLive.set(false);
+      }
+    });
 
-    // 2. Open WebSocket immediately — independent of REST call
+    // 3. Open WebSocket immediately — independent of REST call
     this.connectLiveStream();
 
-    // 3. Fetch historical event data from backend (parallel)
+    // 4. Fetch historical event data from backend (parallel)
     this.seismicService.getHistoricalEvents().subscribe({
       next: (events) => {
         const parsed = events.map(e => ({ ...e, timestamp: new Date(e.timestamp) }));
@@ -194,8 +203,10 @@ export class DashboardStore implements OnDestroy {
         this.isLive.set(true);
       },
       error: (err: unknown) => {
-        console.warn('WebSocket disconnected:', err);
-        this.isLive.set(false);
+        console.warn('WS Stream Error (Retrying...):', err);
+      },
+      complete: () => {
+         console.warn('WS Stream Completed (Repeating...)');
       }
     });
   }
