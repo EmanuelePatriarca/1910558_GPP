@@ -203,10 +203,14 @@ export class DashboardStore implements OnDestroy {
         this.isLive.set(true);
       },
       error: (err: unknown) => {
-        console.warn('WS Stream Error (Retrying...):', err);
+        // Log it, but don't re-subscribe after a delay!
+        // The service already has a 100ms retry logic.
+        console.warn('DashboardStore: WS Stream Interrupted (service will auto-retry):', err);
+        this.isLive.set(false);
       },
       complete: () => {
-         console.warn('WS Stream Completed (Repeating...)');
+         console.warn('DashboardStore: WS Stream Ended (service will auto-repeat)');
+         this.isLive.set(false);
       }
     });
   }
