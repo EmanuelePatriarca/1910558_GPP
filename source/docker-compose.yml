@@ -4,7 +4,7 @@ services:
       context: ./processing_service
       dockerfile: Dockerfile
     deploy:
-      replicas: 5
+      replicas: 10
     depends_on:
       - broker
       - postgres_db

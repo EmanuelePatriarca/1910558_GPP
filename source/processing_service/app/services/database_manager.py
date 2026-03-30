@@ -1,3 +1,5 @@
+import sys
+
 import asyncpg
 import os
 from datetime import datetime
@@ -49,8 +51,10 @@ async def save_event(event_id: int, sensor_id: str, event_timestamp: str, catego
 
         if result == "INSERT 0 1":
             print(f"NEW EVENT SAVED: {category_event} on {sensor_id}")
+            sys.stdout.flush()
         else:
             print(f"DUPLICATE IGNORED: {category_event} on {sensor_id} (Already exists)")
+            sys.stdout.flush()
 
     except Exception as e:
         print(f"Error during DB insertion: {e}")
