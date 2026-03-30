@@ -3,7 +3,6 @@ from app.core.config import settings
 from app.api import api_router
 from app.services import broker_websocket
 from app.services.shutdown_sse import shutdown_sse
-from app.services.database_manager import db_manager
 from contextlib import asynccontextmanager
 
 def get_application() -> FastAPI:
@@ -14,14 +13,11 @@ def get_application() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        await db_manager.connect_to_db()
         broker_websocket.broker_manager.start()
         shutdown_sse.start()
         yield
         await broker_websocket.broker_manager.stop()
         await shutdown_sse.stop()
-        await db_manager.close_db_connection()
-
     application = FastAPI(
         title=settings.PROJECT_NAME,
         lifespan=lifespan,
