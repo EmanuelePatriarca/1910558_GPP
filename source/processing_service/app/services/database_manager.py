@@ -81,7 +81,7 @@ async def get_seismic_history(conn) -> list[EventDataResponse]:
 
     try:
         query = """
-            SELECT sensor_id, timestamp, category_event, dominant_frequency
+            SELECT event_id,sensor_id, timestamp, category_event, dominant_frequency
             FROM seismic_events
             ORDER BY timestamp DESC;
         """
