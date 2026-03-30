@@ -90,6 +90,7 @@ async def get_seismic_history(conn) -> list[EventDataResponse]:
         history = []
         for row in rows:
             event = EventDataResponse(
+                event_id=row["event_id"],
                 sensor_id=row["sensor_id"],
                 timestamp=row["timestamp"].isoformat(),
                 category_event=row["category_event"],
