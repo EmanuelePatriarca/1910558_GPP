@@ -224,7 +224,7 @@ Developed using the Angular framework (TypeScript). Styling and responsive layou
 
 	| Name | Description | Related Microservice | User Stories |
 	| ---- | ----------- | -------------------- | ------------ |
-	Dashboard | Main operator view containing the live event feed, the historical data grid, date range pickers, and chart visualizer | gateway | 14, 15, 16, 17, 18, 19, 20 |
+	Dashboard | Main operator view containing the live event feed, the historical data grid, date range pickers, and chart visualizer | gateway | 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23 |
 
 # CONTAINERS:
 
