@@ -1,8 +1,7 @@
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { SeismicEventService, ConnectionStatus } from '../services/seismic-event.service';
-import { SensorDashboardState, Event, Sensor, SensorCategoryEnum } from '../models/sensor.model';
-import { Subscription } from 'rxjs';
-import { STATIC_SENSORS } from '../constants/sensors.data';
+import { SensorDashboardState, Event, Sensor } from '../models/sensor.model';
+import { Subscription, forkJoin } from 'rxjs';
 
 export interface AppAlert {
   id: string;
@@ -68,8 +67,15 @@ export class DashboardStore implements OnDestroy {
     });
   });
 
-  public fieldSensors = computed(() => this.sensors().filter(s => s.category === SensorCategoryEnum.FIELD));
-  public datacenterSensors = computed(() => this.sensors().filter(s => s.category === SensorCategoryEnum.DATACENTER));
+  /** Unique categories derived from the active sensor list */
+  public sensorCategories = computed(() => {
+     const cats = this.sensorsBase().map(s => s.category);
+     return [...new Set(cats)].sort();
+  });
+
+  public sensorsByCategory = (category: string) => computed(() => 
+     this.sensors().filter(s => s.category === category)
+  );
 
   public filteredHistory = computed(() => {
     const allEvents = this.historicalEvents();
@@ -169,24 +175,46 @@ export class DashboardStore implements OnDestroy {
     this.isLoading.set(true);
     this.loadError.set(null);
 
-    // 1. Carica l'anagrafica sensori statica
-    this.sensorsBase.set(STATIC_SENSORS);
-    
-    // 2. Monitora la connessione: ricarica lo storico REST ad ogni riconnessione SSE
+    // 1. Monitora la connessione: ricarica lo storico REST ad ogni riconnessione SSE
     this.seismicService.status$.subscribe(status => {
       this.connectionStatus.set(status);
       if (status !== 'OPEN') {
         this.isLive.set(false);
       } else {
+        // Al ritorno della connessione aggiorniamo sia l'anagrafica che lo storico
+        this.refreshSensors();
         this.refreshHistory();
       }
     });
 
-    // 3. Avvia lo stream SSE
+    // 2. Avvia lo stream SSE
     this.connectLiveStream();
 
-    // 4. Primo caricamento dello storico
-    this.refreshHistory();
+    // 3. Primo caricamento sincrono (Parallel)
+    forkJoin({
+      sensors: this.seismicService.getSensors(),
+      history: this.seismicService.getHistoricalEvents()
+    }).subscribe({
+       next: (data) => {
+          this.sensorsBase.set(data.sensors);
+          this.processHistory(data.history);
+          this.isLoading.set(false);
+       },
+       error: (err) => {
+          this.loadError.set('Establishment failed: Check backend health API.');
+          this.isLoading.set(false);
+       }
+    });
+  }
+
+  /**
+   * Recupera la lista aggiornata dei sensori dal server.
+   */
+  public refreshSensors() {
+     this.seismicService.getSensors().subscribe({
+       next: (sensors) => this.sensorsBase.set(sensors),
+       error: (err) => console.error('Failed to sync sensor list:', err)
+     });
   }
 
   /**
@@ -199,7 +227,17 @@ export class DashboardStore implements OnDestroy {
     this.loadError.set(null);
 
     this.seismicService.getHistoricalEvents().subscribe({
-      next: (events) => {
+      next: (events) => this.processHistory(events),
+      error: (err) => {
+        if (this.historicalEvents().length === 0) {
+          this.loadError.set('Could not load event history from server.');
+        }
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private processHistory(events: any[]) {
         const parsed = events.map(e => {
           const timestamp = new Date(e.timestamp);
           return { 
@@ -243,14 +281,6 @@ export class DashboardStore implements OnDestroy {
         // 3. Aggiornamento storico visibile
         this.historicalEvents.set(parsed);
         this.isLoading.set(false);
-      },
-      error: (err) => {
-        if (this.historicalEvents().length === 0) {
-          this.loadError.set('Could not load event history from server.');
-        }
-        this.isLoading.set(false);
-      }
-    });
   }
 
   /**

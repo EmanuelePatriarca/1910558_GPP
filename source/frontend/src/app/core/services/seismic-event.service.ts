@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, timer, BehaviorSubject } from 'rxjs';
 import { retry, repeat } from 'rxjs/operators';
-import { Event } from '../models/sensor.model';
+import { Event, Sensor } from '../models/sensor.model';
 
 export type ConnectionStatus = 'CONNECTING' | 'OPEN' | 'CLOSED';
 
@@ -21,6 +21,11 @@ export class SeismicEventService {
   /** Fetches the full historical event log on startup (US-08) */
   getHistoricalEvents(): Observable<Event[]> {
     return this.http.get<Event[]>(`${this.apiUrl}/history`);
+  }
+
+  /** Fetches the dynamic list of sensors (US-01/NEW) */
+  getSensors(): Observable<Sensor[]> {
+    return this.http.get<Sensor[]>(`${this.apiUrl}/devices`);
   }
 
   /**
