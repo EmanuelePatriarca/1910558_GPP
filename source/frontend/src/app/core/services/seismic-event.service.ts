@@ -25,7 +25,7 @@ export class SeismicEventService {
 
   /** Fetches the dynamic list of sensors (US-01/NEW) */
   getSensors(): Observable<Sensor[]> {
-    return this.http.get<Sensor[]>(`${this.apiUrl}/sensors`);
+    return this.http.get<Sensor[]>(`${this.apiUrl}/devices`);
   }
 
   /**
