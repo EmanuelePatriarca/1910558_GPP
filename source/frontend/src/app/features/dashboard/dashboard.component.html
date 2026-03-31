@@ -12,21 +12,24 @@
   <section class="flex flex-col h-full min-h-0">
     <div class="relative flex-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl flex flex-col overflow-hidden">
 
-      <!-- Compressed inner container -->
-      <div class="flex-1 p-2 lg:p-3 flex flex-col gap-2 lg:gap-3 min-h-0">
-        <!-- Sensor tiles (hidden behind panel if panel is open) -->
-        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide shrink-0">Last Occurred Event</h2>
+      <!-- Title fixed at top -->
+      <div class="p-3 pb-2 lg:p-4 lg:pb-3 shrink-0 border-b border-slate-800/50">
+        <h2 class="text-xl lg:text-2xl font-bold font-sans text-slate-100 tracking-wide">Last Occurred Event</h2>
+      </div>
+
+      <!-- Scrollable container for tiles -->
+      <div class="flex-1 p-3 lg:p-4 flex flex-col gap-6 overflow-y-auto custom-scrollbar min-h-0">
 
         <!-- ── Dynamic Sensor Categories ── -->
         @for (category of store.sensorCategories(); track category) {
-          <div class="flex flex-col gap-1.5 lg:gap-2 flex-1 min-h-0">
+          <div class="flex flex-col gap-2 shrink-0">
             <div class="flex items-center gap-2 shrink-0">
               <h3 class="text-[10px] lg:text-xs uppercase text-slate-500 font-bold tracking-[0.2em] shrink-0">{{ category }} Sensors</h3>
               <div class="flex-1 h-px bg-slate-800/50"></div>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 xl:gap-3 flex-1 min-h-0 auto-rows-fr">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 xl:gap-3 shrink-0 auto-rows-fr">
               @for (sensor of store.sensorsByCategory(category)(); track sensor.id) {
-                <div class="relative rounded border-2 p-1.5 pt-4 lg:p-2 lg:pt-5 flex flex-col justify-center items-center text-center transition-all"
+                <div class="relative rounded border-2 p-1.5 pt-4 lg:p-2 lg:pt-5 flex flex-col justify-center items-center text-center transition-all h-20 lg:h-24"
                   [ngClass]="getSensorColorTheme(sensor)">
                 <button
                   (click)="onInfoClick(sensor, $event)"
@@ -35,8 +38,10 @@
                   title="Sensor info">
                   <span class="text-[9px] lg:text-[10px] font-bold">i</span>
                 </button>
+                <div class="w-full flex-1 flex flex-col justify-center items-center min-h-0">
                 <span class="font-semibold text-xs lg:text-sm mb-0.5 lg:mb-1 line-clamp-2 leading-tight cursor-pointer hover:font-bold transition-colors" (click)="onSensorClick(sensor)">{{ sensor.name }}</span>
                 <span class="text-[10px] lg:text-xs font-semibold opacity-90">{{ getEventLabel(sensor.lastEvent?.category_event) }}</span>
+                </div>
               </div>
             }
           </div>

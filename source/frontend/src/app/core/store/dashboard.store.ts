@@ -70,7 +70,7 @@ export class DashboardStore implements OnDestroy {
   /** Unique categories derived from the active sensor list */
   public sensorCategories = computed(() => {
      const cats = this.sensorsBase().map(s => s.category);
-     return [...new Set(cats)].sort();
+     return [...new Set(cats)];
   });
 
   public sensorsByCategory = (category: string) => computed(() => 
