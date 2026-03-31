@@ -1,34 +1,59 @@
 import asyncio
 import logging
 import json
+import sys
 from typing import AsyncGenerator
+from datetime import datetime, timedelta, timezone
+from app.services.database_manager import get_seismic_history, connect_to_db
 
 logger = logging.getLogger(__name__)
 
 class EventsSSEManager:
-    """
-    Gestore centralizzato per lo streaming Server-Sent Events (SSE).
-    Mantiene una lista di code (Queue) attive, una per ogni client connesso.
-    """
+
     def __init__(self):
         # Insieme dei set di code per gestire più client simultaneamente
         self.active_queues: set[asyncio.Queue] = set()
 
     async def subscribe(self) -> AsyncGenerator[str, None]:
-        """
-        Sottoscrive un nuovo client allo stream.
-        Crea una coda dedicata e genera messaggi nel formato SSE (data: ...\n\n).
-        """
+
         queue = asyncio.Queue()
         self.active_queues.add(queue)
-        logger.info(f"Nuovo client SSE connesso. Client attivi: {len(self.active_queues)}")
+        logger.error(f"Nuovo client SSE connesso. Client attivi: {len(self.active_queues)}")
         
         try:
+
+            flag_new_connection_initial_history = False
+
             while True:
-                # Resta in attesa di nuovi messaggi dalla coda
+
                 message = await queue.get()
-                # Formattazione standard SSE: ogni messaggio deve terminare con doppia riga vuota
                 yield f"data: {message}\n\n"
+
+                if not flag_new_connection_initial_history:
+                    conn = await connect_to_db()
+                    if conn is not None:
+                        history = await get_seismic_history(conn)
+                        
+                        # Define the time window for recent events
+                        one_minute_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+                        
+                        recent_history = []
+                        for elem in history:
+                            elem_timestamp = datetime.fromisoformat(elem.timestamp.replace('Z', '+00:00'))
+                            if elem_timestamp >= one_minute_ago:
+                                recent_history.append(elem)
+
+                        for elem in recent_history:
+                            await self.broadcast(elem.model_dump_json())
+
+                        await conn.close()
+                        flag_new_connection_initial_history = True
+
+                        print("Initial history delivered to the gateway. Number of event sent: " + str(len(recent_history)))
+                        sys.stdout.flush()
+                    else:
+                        print("Initial history not retrieved")
+
         except asyncio.CancelledError:
             logger.info("Connessione SSE chiusa dal client.")
             raise
@@ -38,13 +63,10 @@ class EventsSSEManager:
             logger.info(f"Client SSE rimosso. Client attivi: {len(self.active_queues)}")
 
     async def broadcast(self, message: str):
-        """
-        Invia un messaggio a tutti i client attualmente sottoscritti.
-        """
+
         if not self.active_queues:
             return
 
-        # Distribuiamo il messaggio a tutte le code attive
         for queue in self.active_queues:
             await queue.put(message)
 

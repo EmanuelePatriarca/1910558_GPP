@@ -6,10 +6,7 @@ router = APIRouter()
 
 @router.get("/events/stream")
 async def events_sse_stream():
-    """
-    Endpoint per lo streaming SSE dei dati sismici elaborati.
-    Restituisce una StreamingResponse che mantiene aperta la connessione HTTP.
-    """
+
     return StreamingResponse(
         events_sse_manager.subscribe(),
         media_type="text/event-stream",
