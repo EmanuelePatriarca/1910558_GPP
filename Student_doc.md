@@ -70,7 +70,7 @@ The gateway service uses a simple architecture where HAProxy is configured to ro
 A custom, lightweight message broker situated in the neutral zone. It ingests real-time seismic data from sensor WebSockets and broadcasts the stream to multiple connected backend replicas without performing any processing.
 
 ### USER STORIES:
-(14,21) ??
+None
 
 ### PORTS: 
 9000:8000
@@ -113,14 +113,7 @@ The core analytical engine of the platform. Deployed as a scalable cluster (10 r
 3) As an Operator, I want to receive events classified as "Nuclear-like event" when the frequency is 8.0 Hz or higher, so that nuclear-like activities are correctly identified.
 7) As an Operator, I want to view general information about a specific sensor, so that I can understand the sensor context.
 8) As an Operator, I want to inspect historical events in a tabular data grid, so that I can perform retrospective analysis on past incidents.
-9) As an Operator, I want to filter historical events by event type, so that I can focus my analysis exclusively on specific classes of threats.
-10) As an Operator, I want to filter historical events by sensor category, so that I can isolate events detected by a specific category of sensors.
-11) As an Operator, I want to filter historical events by a specific sensor, so that I can isolate events detected by a specific sensor.
-12) As an Operator, I want to filter events based on the event time of occurrence, so that I can focus my analysis exclusively on specific time frame.
-13) As an Operator, I want to sort historical events by timestamp, so that I can see the chronological order of incidents.
 14) As an Operator, I want the dashboard to be updated live without a manual refresh, so that my situational awareness is never delayed.
-15) As an Operator, I want to receive a notification every time a new event occur, so that I do not miss any situational changes.
-21) As a Data Analyst, I want a graph that shows live frequency changes for each sensor, so that statistical analyses can be performed.
 
 ### PORTS: 
 8000:8000
@@ -178,8 +171,6 @@ Does not connect to external services.
 - PORTS: 5432
 - TECHNOLOGICAL SPECIFICATION:
 PostgreSQL
-- SERVICE ARCHITECTURE: 
-<description of the architecture of the microservice>
 
 - DB STRUCTURE:
 
@@ -196,14 +187,11 @@ The graphical interface of the Command Center, offering operators real-time dash
 4) As an Operator, I want to view the most recent event occurred for each sensor, so that I'm always aware of the last threat identified for every sensor.
 5) As an Operator, I want the most recent event occurred at a sensor to be highlighted with a different colour, so that it is easier to have a clear global view of the various threats.
 6) As an Operator, I want last events occurred grouped by sensor category, so that it is easier to distinguish threats identified by different kind of sensors.
-7) As an Operator, I want to view general information about a specific sensor, so that I can understand the sensor context.
-8) As an Operator, I want to inspect historical events in a tabular data grid, so that I can perform retrospective analysis on past incidents.
 9) As an Operator, I want to filter historical events by event type, so that I can focus my analysis exclusively on specific classes of threats.
 10) As an Operator, I want to filter historical events by sensor category, so that I can isolate events detected by a specific category of sensors.
 11) As an Operator, I want to filter historical events by a specific sensor, so that I can isolate events detected by a specific sensor.
 12) As an Operator, I want to filter events based on the event time of occurrence, so that I can focus my analysis exclusively on specific time frame.
 13) As an Operator, I want to sort historical events by timestamp, so that I can see the chronological order of incidents.
-14) As an Operator, I want the dashboard to be updated live without a manual refresh, so that my situational awareness is never delayed.
 15) As an Operator, I want to receive a notification every time a new event occur, so that I do not miss any situational changes.
 16) As an Operator, I want to view the last 10 notification received, so that I do not miss any situational changes.
 17) As an Operator, I want to visualize the position of a specific sensor on a map, so that I can visually map the origin of the alerts on my monitors.
