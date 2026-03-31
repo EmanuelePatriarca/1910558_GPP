@@ -307,15 +307,12 @@ export class DashboardStore implements OnDestroy {
           id: event.id ?? this.generateInternalEventId(event)
         };
 
-        // 1. Scarto duplicati per il grafico live (Frequency chart)
-        const isDuplicateLive = this.liveFrequencyEvents().some(e => e.id === parsed.id);
-        if (!isDuplicateLive) {
-          this.liveFrequencyEvents.update(evs => {
-            const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
-            const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
-            return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
-          });
-        }
+        // 1. Aggiornamento grafico live (Frequency chart) - Non filtriamo duplicati qui per garantire il flusso continuo
+        this.liveFrequencyEvents.update(evs => {
+          const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
+          const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
+          return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
+        });
 
         // 2. Solo gli eventi categorizzati aggiornano lo storico e attivano i pop-up
         if (parsed.category_event) {
