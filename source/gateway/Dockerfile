@@ -1,8 +1,7 @@
-FROM nginx:alpine
+FROM haproxy:2.8-alpine
 
-# Copy the custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copia della configurazione personalizzata
+COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8404
