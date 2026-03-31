@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import json
 import sys
 from typing import AsyncGenerator
 from datetime import datetime, timedelta, timezone
@@ -11,7 +10,6 @@ logger = logging.getLogger(__name__)
 class EventsSSEManager:
 
     def __init__(self):
-        # Insieme dei set di code per gestire più client simultaneamente
         self.active_queues: set[asyncio.Queue] = set()
 
     async def subscribe(self) -> AsyncGenerator[str, None]:
@@ -58,7 +56,6 @@ class EventsSSEManager:
             logger.info("Connessione SSE chiusa dal client.")
             raise
         finally:
-            # Pulizia della coda alla disconnessione
             self.active_queues.remove(queue)
             logger.info(f"Client SSE rimosso. Client attivi: {len(self.active_queues)}")
 
@@ -70,5 +67,4 @@ class EventsSSEManager:
         for queue in self.active_queues:
             await queue.put(message)
 
-# Istanza globale del gestore SSE
 events_sse_manager = EventsSSEManager()

@@ -36,17 +36,16 @@ The command center is located in a neutral region, which strictly prohibits host
 ## CONTAINER_NAME: Gateway
 
 ### DESCRIPTION: 
-Provides a single Point of Access (API Gateway/Load Balancer) for all the incoming requests for the entire system, routing them to the frontend or the backend replicas while actively monitoring node health.
+Provides a single Point of Access (API Gateway) for all the incoming requests for the entire system, routing them to the frontend or the backend replicas while actively monitoring node health.
 
 ### USER STORIES:
-None
 
 ### PORTS: 
 80:80
 8404:8404
 
 ### PERSISTENCE EVALUATION
-No persistence is required for the Gateway container, as it only routes requests to the backend services and does not store any data.
+The gateway container does not include a database.
 
 ### EXTERNAL SERVICES CONNECTIONS
 The gateway container does not connect to external services.
@@ -55,28 +54,25 @@ The gateway container does not connect to external services.
 
 #### MICROSERVICE: gateway
 - TYPE: middleware
-- DESCRIPTION: This microservice acts as a reverse proxy using HAProxy, providing load balancing via roundrobin and continuous health checks to exclude failed processing service replicas from the pool.
-- PORTS: 80, 8404
+- DESCRIPTION: This microservice acts as a reverse proxy using HAProxy, providing continuous health checks to exclude failed processing service replicas from the active pool.
+- PORTS: 80
 - TECHNOLOGICAL SPECIFICATION:
-The microservice is implemented using HAProxy, configured as a high-performance reverse proxy and load balancer. It leverages Docker's internal DNS resolver for dynamic container discovery and HAProxy's native features for HTTP traffic inspection and exposing a statistics dashboard.
+The microservice is implemented using HAProxy, configured as a high-performance reverse proxy. It leverages Docker's internal DNS resolver for dynamic container discovery.
 - SERVICE ARCHITECTURE: 
-The gateway service uses a simple architecture where HAProxy is configured to route requests to the backend services based on the URL path. The gateway service also provides a health check endpoint that can be used to monitor the health of the backend services.
-
-# CONTAINERS:
+The gateway service uses a simple architecture where HAProxy is configured to route requests to the backend services based on the URL path. The gateway service also perform health checks that can be used to monitor the health of the backend services.
 
 ## CONTAINER_NAME: Broker
 
 ### DESCRIPTION: 
-A custom, lightweight message broker situated in the neutral zone. It ingests real-time seismic data from sensor WebSockets and broadcasts the stream to multiple connected backend replicas without performing any processing.
+A custom, lightweight message broker. It ingests real-time seismic data from sensor WebSockets and broadcasts the stream to multiple connected backend replicas without performing any processing.
 
 ### USER STORIES:
-None
 
 ### PORTS: 
 9000:8000
 
 ### PERSISTENCE EVALUATION
-The broker container does not include a database and operates entirely in memory, storing active WebSocket connections to comply with neutral region regulations.
+The broker container does not include a database.
 
 ### EXTERNAL SERVICES CONNECTIONS
 The broker container does not connect to external services.
@@ -90,17 +86,17 @@ The broker container does not connect to external services.
 - TECHNOLOGICAL SPECIFICATION:
 Developed in Python using FastAPI, Uvicorn, and standard WebSockets.
 - SERVICE ARCHITECTURE: 
-Features a centralized Connection Manager that accepts incoming WebSocket streams and broadcasts messages to all connected clients (replicas).
+Features a centralized Connection Manager that accepts incoming WebSocket streams and broadcasts messages to all connected clients (processing service replicas).
+Messages to be sent are measurement data obtained by the simulator through a WebSocket connection.
 
 - ENDPOINTS: 
 		
-	| HTTP METHOD | URL | Description | User Stories |
-	| ----------- | --- | ----------- | ------------ |
-    | GET | / | Returns the basic status and a welcome message from the broker | - |
-	| GET | /api/devices | Retrieves the list of available sensors by querying the external simulator | - |
+	| HTTP METHOD | URL | Description                                                                                                                | User Stories |
+	| ----------- | --- |----------------------------------------------------------------------------------------------------------------------------| ------------ |
+    | GET | / | Returns the basic status and a welcome message from the broker                                                             | - |
+	| GET | /api/devices | Returns the list of available sensors by querying the simulator                                                            | - |
 	| WS | /ws/stream | Listening endpoint to which processing service replicas connect to receive the real-time broadcast of seismic data streams | - |
 
-# CONTAINERS:
 
 ## CONTAINER_NAME: Processing Service
 
@@ -115,8 +111,7 @@ The core analytical engine of the platform. Deployed as a scalable cluster (10 r
 8) As an Operator, I want to inspect historical events in a tabular data grid, so that I can perform retrospective analysis on past incidents.
 14) As an Operator, I want the dashboard to be updated live without a manual refresh, so that my situational awareness is never delayed.
 
-### PORTS: 
-8000:8000
+### PORTS:
 
 ### PERSISTENCE EVALUATION
 The processing_service container does not persist data internally; it relies on the `postgres_db` container to save classified events.
@@ -128,37 +123,37 @@ The processing_service container does not connect to external services.
 
 #### MICROSERVICE: processing_service
 - TYPE: backend
-- DESCRIPTION: Manages complex business logic including sliding windows, Discrete Fourier Transforms (DFT), and event classification. Features a replicated deployment (10 replicas) to ensure fault tolerance.
+- DESCRIPTION: Manages seismic event classification using FFT on sliding windows. Features a replicated deployment (10 replicas) to ensure fault tolerance.
 - PORTS: 8000
 - TECHNOLOGICAL SPECIFICATION:
-Developed in Python using FastAPI. Relies on Uvicorn, Pydantic for data validation, and async programming paradigms.
+Developed in Python using FastAPI. Relies on Uvicorn, Pydantic for data validation, asyncpg for database interaction and numpy for FTT analysis.
 - SERVICE ARCHITECTURE:
-Uses application "lifespan" async context managers to run background tasks that listen to WebSockets and SSEs. Exposes RESTful endpoints and an SSE streaming endpoint routed into separate API modules (`history_api`, `events_sse_api`, `health_api`).
+Uses application "lifespan" async context managers to run a background tasks that listen to WebSockets for incoming measurements' data.
+Exposes an SSE streaming endpoint for the delivery of the events detected from the FFT analysis to the API Gateway.
+Saves considerable events in a shared database in a way idempotency is fulfilled.
 
 - ENDPOINTS:
 		
-	| HTTP METHOD | URL | Description | User Stories |
-	| ----------- | --- | ----------- | ------------ |
-    | GET | /health | Returns health status (used by API Gateway) | 13 |
-    | GET | /history | Retrieves filtered historical seismic events | 16, 17, 18, 19 |
-    | GET | /streaming | Server-Sent Events (SSE) stream for live updates | 15 |
-	| GET | /api/devices | Retrieves a list of available sensors | 18, 20 |
+	| HTTP METHOD | URL            | Description                            | User Stories |
+	| ----------- |----------------|----------------------------------------|--------------|
+    | GET | /health        | Returns health status (used by API Gateway) | 14           |
+    | GET | /history       | Retrieves historical seismic events    | 8            |
+    | GET | /events/stream | Server-Sent Events (SSE) stream for live updates | 14           |
+	| GET | /devices       | Retrieves a list of available sensors  | 7            |
 
-# CONTAINERS:
 
-## CONTAINER_NAME: postgres_db
+## CONTAINER_NAME: PostgreSQL
 
 ### DESCRIPTION: 
-Relational database responsible for securely and persistently storing all seismic events analyzed by the processing replicas.
+Relational database responsible for persistently storing all considerable seismic events analyzed by the processing service replicas.
 
 ### USER STORIES:
-None
 
 ### PORTS: 
 5432:5432
 
 ### PERSISTENCE EVALUATION
-High persistence. Data is permanently stored on disk using Docker Volumes (`postgres_data`).
+Data is permanently stored on disk using Docker Volumes (`postgres_data`).
 
 ### EXTERNAL SERVICES CONNECTIONS
 Does not connect to external services.
@@ -167,18 +162,15 @@ Does not connect to external services.
 
 #### MICROSERVICE: postgres_db
 - TYPE: database
-- DESCRIPTION: A PostgreSQL database instance configured with specific tables and constraints to store seismic intelligence data.
+- DESCRIPTION: A PostgreSQL database instance configured with specific tables and constraints to store considerable seismic event.
 - PORTS: 5432
-- TECHNOLOGICAL SPECIFICATION:
-PostgreSQL
 
 - DB STRUCTURE:
 
-	**_seismic_events_** :	| **_event_id_** (SERIAL) | sensor_id (VARCHAR) | timestamp (TIMESTAMPTZ) | category_event (VARCHAR) | dominant_frequency (DOUBLE PRECISION) |
+	**_seismic_events_** :	| **_event_id_** (SERIAL) | **_sensor_id_** (VARCHAR) | timestamp (TIMESTAMPTZ) | **_category_event_** (VARCHAR) | dominant_frequency (DOUBLE PRECISION) |
 
-# CONTAINERS:
 
-## CONTAINER_NAME: frontend
+## CONTAINER_NAME: Frontend
 
 ### DESCRIPTION: 
 The graphical interface of the Command Center, offering operators real-time dashboard visualization and historical data analysis tools.
@@ -202,8 +194,7 @@ The graphical interface of the Command Center, offering operators real-time dash
 22) As a Data Analyst, I want a graph that shows the number of events occurred for each sensor, so that statistical analyses can be performed.
 23) As a Data Analyst, I want to see a quick summary tooltip showing the breakdown of event types when hovering over a sensor in the event distribution graph, so that I can immediately understand the specific categories of threats detected by that sensor.
 
-### PORTS: 
-Internal
+### PORTS:
 
 ### PERSISTENCE EVALUATION
 No database included. Stores temporary state locally during the browser session.
@@ -215,23 +206,22 @@ Does not connect to external services.
 
 #### MICROSERVICE: frontend
 - TYPE: frontend
-- DESCRIPTION: A single-page application (SPA) that acts as the Command Center Dashboard, subscribing to SSE events and fetching historical data.
-- PORTS: Internal
+- DESCRIPTION: A single-page application (SPA) that acts as the Command Center Dashboard, subscribing to SSE events and fetching live updates and historical seismic events data.
+- PORTS: 80
 - TECHNOLOGICAL SPECIFICATION:
-Developed using the Angular framework (TypeScript). Styling and responsive layouts are achieved using Tailwind CSS. It leverages RxJS observables to manage incoming SSE streams and complex asynchronous state efficiently.
+Developed using the Angular framework (TypeScript). Styling and responsive layouts are achieved using Tailwind CSS. It leverages RxJS observables to manage incoming SSE streams efficiently.
 
 - PAGES:
 
-	| Name | Description | Related Microservice | User Stories |
-	| ---- | ----------- | -------------------- | ------------ |
-	Dashboard | Main operator view containing the live event feed, the historical data grid, date range pickers, and chart visualizer | gateway | 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23 |
+	| Name | Description                                                                                                | Related Microservice | User Stories |
+	| ---- |------------------------------------------------------------------------------------------------------------| -------------------- | ------------ |
+	Surveillance Dashboards | Main operator view containing the live event feed, the historical data grid, filters, and chart visualizer | gateway | 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23 |
 
-# CONTAINERS:
 
-## CONTAINER_NAME: simulator
+## CONTAINER_NAME: Simulator
 
 ### DESCRIPTION: 
-Generates the raw seismic data stream to emulate the covert surveillance devices and issues control commands (like SHUTDOWN).
+Generates the raw seismic data stream and issues SHUTDOWN control commands.
 
 ### PORTS: 
 8080:8080

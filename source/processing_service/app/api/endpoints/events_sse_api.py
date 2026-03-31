@@ -13,6 +13,6 @@ async def events_sse_stream():
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no" # Disabilita il buffering aggiuntivo su Nginx
+            "X-Accel-Buffering": "no"
         }
     )

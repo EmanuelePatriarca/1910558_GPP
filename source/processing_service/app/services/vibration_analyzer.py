@@ -77,7 +77,7 @@ class VibrationAnalyzer:
         #          Earthquake continues -> event_detected = "earthquake" == "earthquake" -> No event saved
         #          Earthquake ends -> event_detected = "" != "earthquake" -> Event not saved being not a considerable event
         #
-        # This logic w to prevent the same replica to save event multiple time
+        # This logic prevent the same replica to save event multiple time
 
         # Broadcast to gateway:
         # A considerable event is sent with category_event != "" only once, then it is sent with category_event = ""
