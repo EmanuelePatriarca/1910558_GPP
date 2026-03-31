@@ -7,10 +7,7 @@ services:
     deploy:
       replicas: 10
     depends_on:
-      broker:
-        condition: service_started
-      postgres_db:
-        condition: service_healthy
+      - postgres_db
     env_file:
       - ./processing_service/.env
     environment:
@@ -26,8 +23,6 @@ services:
       - PYTHONUNBUFFERED=1
     ports:
       - "9000:8000"
-    depends_on:
-      - simulator
     networks:
       - backend_network
 
