@@ -243,17 +243,19 @@ export class DashboardStore implements OnDestroy {
           return { 
             ...e, 
             timestamp,
-            // ID deterministico
+            // ID deterministico (assegnato da FE o già presente)
             id: e.id ?? this.generateInternalEventId(e)
           };
         });
 
-        // 1. Identificazione eventi "persi" (nuovi alert critici)
-        const currentEventIds = new Set(this.historicalEvents().map(e => e.id));
+        // 1. Identificazione eventi "nuovi" (non presenti nello storico attuale)
+        const currentIds = new Set(this.historicalEvents().map(e => e.id));
+        const newEventsToAdd = parsed.filter(ev => !currentIds.has(ev.id));
+
+        // 2. Identificazione alert critici tra i "nuovi" eventi
         const newAlerts: AppAlert[] = [];
-        parsed.forEach(ev => {
-          // Se l'evento ha una categoria (è un alert) e non è tra gli ID noti
-          if (ev.category_event && !currentEventIds.has(ev.id)) {
+        newEventsToAdd.forEach(ev => {
+          if (ev.category_event) {
             const sensor = this.sensorsBase().find(s => s.id === ev.sensor_id);
             newAlerts.push({
               id: ev.id,
@@ -265,21 +267,25 @@ export class DashboardStore implements OnDestroy {
           }
         });
 
-        // 2. Notifica silenziosa per gli alert di recupero
+        // 3. Notifica alert di recupero
         if (newAlerts.length > 0) {
-           // Ordiniamo gli alert dal più vecchio al più recente per l'inserimento
-           // ma AppComponent vedrà sempre l'ultimo in lista (il più recente) per il toast
            newAlerts.sort((a,b) => a.event.timestamp.getTime() - b.event.timestamp.getTime());
-           
            this.alertsHistory.update(current => {
               const updated = [...newAlerts.reverse(), ...current];
-              return updated.slice(0, 10); // Manteniamo solo gli ultimi 10 alert storici
+              return updated.slice(0, 10);
            });
            console.log(`Alert Recovery: Syncing ${newAlerts.length} missed events.`);
         }
 
-        // 3. Aggiornamento storico visibile
-        this.historicalEvents.set(parsed);
+        // 4. Aggiornamento storico visibile: uniamo i nuovi ai vecchi senza duplicati
+        if (newEventsToAdd.length > 0) {
+           this.historicalEvents.update(current => {
+             const combined = [...newEventsToAdd, ...current];
+             // Garantiamo l'ordine decrescente per timestamp
+             return combined.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+           });
+        }
+        
         this.isLoading.set(false);
   }
 
@@ -301,19 +307,22 @@ export class DashboardStore implements OnDestroy {
           id: event.id ?? this.generateInternalEventId(event)
         };
 
-        // Mantieni solo le ultime 20 letture per sensore per il grafico live
-        this.liveFrequencyEvents.update(evs => {
-          const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
-          const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
-          return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
-        });
+        // 1. Scarto duplicati per il grafico live (Frequency chart)
+        const isDuplicateLive = this.liveFrequencyEvents().some(e => e.id === parsed.id);
+        if (!isDuplicateLive) {
+          this.liveFrequencyEvents.update(evs => {
+            const sameSensor = evs.filter(e => e.sensor_id === parsed.sensor_id);
+            const otherSensors = evs.filter(e => e.sensor_id !== parsed.sensor_id);
+            return [parsed, ...sameSensor.slice(0, 19), ...otherSensors];
+          });
+        }
 
-        // Solo gli eventi categorizzati aggiornano lo storico e attivano i pop-up
+        // 2. Solo gli eventi categorizzati aggiornano lo storico e attivano i pop-up
         if (parsed.category_event) {
-          // Utilizziamo l'ID deterministico per evitare duplicati durante i refresh
-          const isDuplicate = this.historicalEvents().some(e => e.id === parsed.id);
+          // Utilizziamo l'ID deterministico per evitare duplicati durante i refresh o sovrapposizioni SSE
+          const isDuplicateHistory = this.historicalEvents().some(e => e.id === parsed.id);
           
-          if (!isDuplicate) {
+          if (!isDuplicateHistory) {
             this.historicalEvents.update(evs => [parsed, ...evs]);
             const sensorName = this.getSensorRef(event.sensor_id)?.name ?? event.sensor_id;
             this.pushAlert(parsed, sensorName);
