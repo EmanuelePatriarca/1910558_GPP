@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from src.run_task import lifespan
 from src.connection_manager import manager
+from src.get_devices import get_devices_router
 
 
 app = FastAPI(title="Custom Seismic Broker", lifespan=lifespan)
@@ -14,6 +15,8 @@ app.add_middleware(
     allow_methods=["*"],  # Consente tutti i metodi: GET, POST, DELETE, ecc.
     allow_headers=["*"],  # Consente tutti gli headers
 )
+
+app.include_router(get_devices_router)
 
 @app.get("/")
 def read_root():
@@ -29,4 +32,6 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
 

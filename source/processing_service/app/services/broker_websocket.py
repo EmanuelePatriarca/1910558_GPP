@@ -12,12 +12,11 @@ async def broker_websocket_task(uri: str):
 
     # Create an analyzer for each sensor
 
-    sensors_id = ["sensor-01", "sensor-02", "sensor-03", "sensor-04", "sensor-05", "sensor-06", "sensor-07",
-                  "sensor-08", "sensor-09", "sensor-10", "sensor-11", "sensor-12"]
+    sensors_id = []
     analyzers = []
 
-    for sensor in sensors_id:
-         analyzers.append(VibrationAnalyzer(sensor, window_size=512, step_size=128))
+    # for sensor in sensors_id:
+    #     analyzers.append(VibrationAnalyzer(sensor, window_size=512, step_size=128))
 
     # Catching data from WebSocket and forwarding it to the analyzers
 
@@ -31,6 +30,10 @@ async def broker_websocket_task(uri: str):
                     try:
 
                         data = SensorDataInput.model_validate_json(message)
+
+                        if data.sensor_id not in sensors_id:
+                            sensors_id.append(data.sensor_id)
+                            analyzers.append(VibrationAnalyzer(data.sensor_id, window_size=512, step_size=128))
 
                         for analyzer in analyzers:
                             await analyzer.add_data(data.sensor_id, data.timestamp, data.value)

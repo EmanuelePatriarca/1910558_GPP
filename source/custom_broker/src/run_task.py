@@ -3,7 +3,6 @@ import asyncio
 import httpx
 import websockets   
 from contextlib import asynccontextmanager
-import itertools
 
 from src.connection_manager import manager
 
