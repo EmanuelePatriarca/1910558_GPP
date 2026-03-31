@@ -200,7 +200,7 @@ The graphical interface of the Command Center, offering operators real-time dash
 No database included. Stores temporary state locally during the browser session.
 
 ### EXTERNAL SERVICES CONNECTIONS
-Does not connect to external services.
+It connects to OpenStreetMap to show the exact location of each sensor.
 
 ### MICROSERVICES:
 
