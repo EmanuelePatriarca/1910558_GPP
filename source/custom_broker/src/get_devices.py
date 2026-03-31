@@ -16,5 +16,6 @@ async def get_devices():
         )
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
-            status_code=exc.response.status_code, detail=f"Non-successful response from simulator: {exc.response.text}"
+            status_code=exc.response.status_code,
+            detail=f"Non-successful response from simulator. Status: {exc.response.status_code}. Response: '{exc.response.text}'"
         )
