@@ -6,8 +6,6 @@ The command center is located in a neutral region, which strictly prohibits host
 
 # USER STORIES:
 
-# User Stories: Seismic Monitoring System
-
 1) As an Operator, I want to receive events classified as "Earthquake" when the frequency is between 0.5 and 3.0 Hz, so that seismic activities are correctly identified.
 2) As an Operator, I want to receive events classified as "Conventional Explosion" when the frequency is between 3.0 Hz and 8.0 Hz, so that military activities are correctly identified.
 3) As an Operator, I want to receive events classified as "Nuclear-like event" when the frequency is 8.0 Hz or higher, so that nuclear-like activities are correctly identified.
@@ -24,10 +22,13 @@ The command center is located in a neutral region, which strictly prohibits host
 14) As an Operator, I want the dashboard to be updated live without a manual refresh, so that my situational awareness is never delayed.
 15) As an Operator, I want to receive a notification every time a new event occur, so that I do not miss any situational changes.
 16) As an Operator, I want to view the last 10 notification received, so that I do not miss any situational changes.
-17) As an Operator or Data Analyst, I want to download the history of events as an Excel file, so that I can export historical data for further analysis.
-18) As an Operator, I want to visualize the position of a specific sensor on a map, so that I can visually map the origin of the alerts on my monitors.
-19) As a Data Analyst, I want a graph that shows live frequency changes for each sensor, so that statistical analyses can be performed.
-20) As a Data Analyst, I want a graph that shows the number of events occurred for each sensor, so that statistical analyses can be performed.
+17) As an Operator, I want to visualize the position of a specific sensor on a map, so that I can visually map the origin of the alerts on my monitors.
+18) As an Operator, I want to clearly see the total count of filtered events displayed above or within the historical data grid, so that I have an immediate understanding of the overall volume of recorded incidents.
+19) As an Operator or Data Analyst, I want to download the history of events as an Excel file, so that I can export historical data for further analysis.
+20) As an Operator or Data Analyst, I want the active table filters to be applied to the downloaded Excel file, so that I only export the specific data subset I am currently analyzing.
+21) As a Data Analyst, I want a graph that shows live frequency changes for each sensor, so that statistical analyses can be performed.
+22) As a Data Analyst, I want a graph that shows the number of events occurred for each sensor, so that statistical analyses can be performed.
+23) As a Data Analyst, I want to see a quick summary tooltip showing the breakdown of event types when hovering over a sensor in the event distribution graph, so that I can immediately understand the specific categories of threats detected by that sensor.
 
 # RULE MODEL:
 
