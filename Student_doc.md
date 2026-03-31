@@ -97,8 +97,8 @@ Features a centralized Connection Manager that accepts incoming WebSocket stream
 	| HTTP METHOD | URL | Description | User Stories |
 	| ----------- | --- | ----------- | ------------ |
     | GET | / | Returns the basic status and a welcome message from the broker | - |
-	| GET | /api/devices | Retrieves the list of available sensors by querying the external simulator | 18, 20 |
-	| WS | /ws/stream | Listening endpoint to which processing service replicas connect to receive the real-time broadcast of seismic data streams | 1, 2 |
+	| GET | /api/devices | Retrieves the list of available sensors by querying the external simulator | - |
+	| WS | /ws/stream | Listening endpoint to which processing service replicas connect to receive the real-time broadcast of seismic data streams | - |
 
 # CONTAINERS:
 
