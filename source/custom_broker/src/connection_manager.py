@@ -32,10 +32,10 @@ class ConnectionManager:
             try:
                 await connection.send_text(payload)
             except Exception:
-                # Se l'invio fallisce, è probabile che il client sia "morto" (es. staccato improvvisamente)
+                # Se l'invio fallisce, è probabile che il client sia "morto"
                 self.disconnect(connection)
 
-        # Eseguiamo tutti gli invii contemporaneamente per non creare ritardi (collo di bottiglia)
+        # Eseguiamo tutti gli invii contemporaneamente per non creare ritardi
         if self.active_connections:
             await asyncio.gather(*(send(conn) for conn in self.active_connections))
 

@@ -10,7 +10,7 @@ app = FastAPI(title="Custom Seismic Broker", lifespan=lifespan)
 # Configurazione CORS per consentire l'accesso da web frontend esterni
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Modifica questo mettendo l'URL del tuo client web (es. ["http://localhost:3000"]) in produzione
+    allow_origins=["*"], 
     allow_credentials=False,
     allow_methods=["*"],  # Consente tutti i metodi: GET, POST, DELETE, ecc.
     allow_headers=["*"],  # Consente tutti gli headers

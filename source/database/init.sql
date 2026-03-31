@@ -6,6 +6,5 @@ CREATE TABLE IF NOT EXISTS seismic_events (
     category_event VARCHAR(50) NOT NULL,
     dominant_frequency DOUBLE PRECISION NOT NULL,
     
-    -- La tua eccellente Chiave Primaria Composta!
     PRIMARY KEY (event_id, sensor_id, category_event)
 );
