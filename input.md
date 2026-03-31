@@ -9,7 +9,7 @@ The command center is located in a neutral region, which strictly prohibits host
 # User Stories: Seismic Monitoring System
 
 1) As an Operator, I want to receive events classified as "Earthquake" when the frequency is between 0.5 and 3.0 Hz, so that seismic activities are correctly identified.
-2) As an Operator, I want to receive events classified as "Conventional Explosion" when the frequency is between 0.3 and 8.0 Hz, so that military activities are correctly identified.
+2) As an Operator, I want to receive events classified as "Conventional Explosion" when the frequency is between 3.0 Hz and 8.0 Hz, so that military activities are correctly identified.
 3) As an Operator, I want to receive events classified as "Nuclear-like event" when the frequency is 8.0 Hz or higher, so that nuclear-like activities are correctly identified.
 4) As an Operator, I want to view the most recent event occurred for each sensor, so that I'm always aware of the last threat identified for every sensor.
 5) As an Operator, I want the most recent event occurred at a sensor to be highlighted with a different colour, so that it is easier to have a clear global view of the various threats.
@@ -28,3 +28,11 @@ The command center is located in a neutral region, which strictly prohibits host
 18) As an Operator, I want to visualize the position of a specific sensor on a map, so that I can visually map the origin of the alerts on my monitors.
 19) As a Data Analyst, I want a graph that shows live frequency changes for each sensor, so that statistical analyses can be performed.
 20) As a Data Analyst, I want a graph that shows the number of events occurred for each sensor, so that statistical analyses can be performed.
+
+# RULE MODEL:
+
+The business logic for event classification relies on the dominant frequency component extracted from the time-domain measurement using FFT.
+
+- Earthquake: frequency >= 0.5 Hz AND frequency < 3.0 Hz
+- Conventional explosion: frequency >= 3.0 Hz AND frequency < 8.0 Hz
+- Nuclear-like event: frequency >= 8.0 Hz
